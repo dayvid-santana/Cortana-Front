@@ -1,0 +1,118 @@
+/**
+ * Semantic design tokens for DevMate. Raw values live here as CSS custom
+ * properties; Tailwind utility names are mapped to them in globals.css via
+ * `@theme inline`, so components use `bg-surface`, `text-danger`, etc.
+ * instead of hard-coded colors — this file is the only place a color value
+ * should ever be written.
+ */
+:root {
+  color-scheme: light;
+
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(222 20% 12%);
+
+  --surface: hsl(220 20% 98%);
+  --surface-muted: hsl(220 16% 94%);
+
+  --border: hsl(220 14% 86%);
+  --ring: hsl(217 91% 55%);
+
+  --accent: hsl(217 91% 45%);
+  --accent-foreground: hsl(0 0% 100%);
+
+  --muted-foreground: hsl(220 9% 40%);
+
+  --success: hsl(152 60% 32%);
+  --success-foreground: hsl(0 0% 100%);
+  --warning: hsl(38 92% 38%);
+  --warning-foreground: hsl(0 0% 100%);
+  --danger: hsl(2 72% 45%);
+  --danger-foreground: hsl(0 0% 100%);
+
+  --docs-scope: hsl(217 91% 45%);
+  --code-scope: hsl(271 65% 47%);
+
+  --selected-line: hsl(48 96% 62%);
+  --diff-added: hsl(152 60% 32%);
+  --diff-added-bg: hsl(152 60% 95%);
+  --diff-removed: hsl(2 72% 45%);
+  --diff-removed-bg: hsl(2 72% 96%);
+  --diff-context: hsl(220 9% 40%);
+
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --background: hsl(222 22% 8%);
+    --foreground: hsl(220 20% 92%);
+
+    --surface: hsl(222 20% 11%);
+    --surface-muted: hsl(222 18% 15%);
+
+    --border: hsl(220 14% 22%);
+    --ring: hsl(217 91% 65%);
+
+    --accent: hsl(217 91% 65%);
+    --accent-foreground: hsl(222 22% 8%);
+
+    --muted-foreground: hsl(220 10% 65%);
+
+    --success: hsl(152 55% 55%);
+    --success-foreground: hsl(152 60% 10%);
+    --warning: hsl(38 92% 60%);
+    --warning-foreground: hsl(38 92% 10%);
+    --danger: hsl(2 80% 65%);
+    --danger-foreground: hsl(2 60% 10%);
+
+    --docs-scope: hsl(217 91% 68%);
+    --code-scope: hsl(271 70% 72%);
+
+    --selected-line: hsl(48 90% 45%);
+    --diff-added: hsl(152 55% 55%);
+    --diff-added-bg: hsl(152 45% 14%);
+    --diff-removed: hsl(2 80% 65%);
+    --diff-removed-bg: hsl(2 45% 16%);
+    --diff-context: hsl(220 10% 65%);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --background: hsl(222 22% 8%);
+  --foreground: hsl(220 20% 92%);
+
+  --surface: hsl(222 20% 11%);
+  --surface-muted: hsl(222 18% 15%);
+
+  --border: hsl(220 14% 22%);
+  --ring: hsl(217 91% 65%);
+
+  --accent: hsl(217 91% 65%);
+  --accent-foreground: hsl(222 22% 8%);
+
+  --muted-foreground: hsl(220 10% 65%);
+
+  --success: hsl(152 55% 55%);
+  --success-foreground: hsl(152 60% 10%);
+  --warning: hsl(38 92% 60%);
+  --warning-foreground: hsl(38 92% 10%);
+  --danger: hsl(2 80% 65%);
+  --danger-foreground: hsl(2 60% 10%);
+
+  --docs-scope: hsl(217 91% 68%);
+  --code-scope: hsl(271 70% 72%);
+
+  --selected-line: hsl(48 90% 45%);
+  --diff-added: hsl(152 55% 55%);
+  --diff-added-bg: hsl(152 45% 14%);
+  --diff-removed: hsl(2 80% 65%);
+  --diff-removed-bg: hsl(2 45% 16%);
+  --diff-context: hsl(220 10% 65%);
+}

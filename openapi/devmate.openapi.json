@@ -1,0 +1,1019 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "DevMate API",
+    "version": "0.1.0",
+    "description": "HTTP contract for the DevMate web frontend. This document is authored by the frontend team as the contract MSW mocks are built against, pending a real FastAPI implementation on top of the existing application services. See docs/web-api-gaps.md."
+  },
+  "servers": [{ "url": "/api/v1" }],
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "getHealth",
+        "summary": "Liveness/readiness probe",
+        "responses": {
+          "200": {
+            "description": "Service is up",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HealthStatus" } } }
+          }
+        }
+      }
+    },
+    "/projects": {
+      "get": {
+        "operationId": "listProjects",
+        "summary": "List projects known to DevMate",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["items"],
+                  "properties": { "items": { "type": "array", "items": { "$ref": "#/components/schemas/Project" } } }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createProject",
+        "summary": "Register a local repository path as a project",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProjectCreateRequest" } } }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Project" } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/projects/{projectId}": {
+      "get": {
+        "operationId": "getProject",
+        "summary": "Get a project",
+        "parameters": [{ "$ref": "#/components/parameters/ProjectId" }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Project" } } }
+          },
+          "404": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/projects/{projectId}/status": {
+      "get": {
+        "operationId": "getProjectStatus",
+        "summary": "Operational status for a project (connection, scan, defaults)",
+        "parameters": [{ "$ref": "#/components/parameters/ProjectId" }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProjectStatus" } } }
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/scan": {
+      "post": {
+        "operationId": "scanProject",
+        "summary": "Trigger a repository scan",
+        "parameters": [{ "$ref": "#/components/parameters/ProjectId" }],
+        "responses": {
+          "202": {
+            "description": "Scan accepted",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProjectStatus" } } }
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/commits": {
+      "get": {
+        "operationId": "listCommits",
+        "summary": "List commits for a branch, paginated by cursor",
+        "parameters": [
+          { "$ref": "#/components/parameters/ProjectId" },
+          { "name": "branch", "in": "query", "schema": { "type": "string" } },
+          { "name": "cursor", "in": "query", "schema": { "type": "string" } },
+          { "name": "status", "in": "query", "schema": { "$ref": "#/components/schemas/CommitAnalysisStatus" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 30 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CommitPage" } } }
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/commits/{commitHash}": {
+      "get": {
+        "operationId": "getCommit",
+        "summary": "Get a single commit with its analysis",
+        "parameters": [
+          { "$ref": "#/components/parameters/ProjectId" },
+          { "$ref": "#/components/parameters/CommitHash" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Commit" } } }
+          },
+          "404": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/projects/{projectId}/files": {
+      "get": {
+        "operationId": "listFiles",
+        "summary": "File tree at a commit",
+        "parameters": [
+          { "$ref": "#/components/parameters/ProjectId" },
+          { "name": "commit", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["items"],
+                  "properties": { "items": { "type": "array", "items": { "$ref": "#/components/schemas/FileTreeEntry" } } }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/files/content": {
+      "get": {
+        "operationId": "getFileContent",
+        "summary": "Read-only file content at a commit, optionally range-limited",
+        "parameters": [
+          { "$ref": "#/components/parameters/ProjectId" },
+          { "name": "path", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "commit", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "startLine", "in": "query", "schema": { "type": "integer", "minimum": 1 } },
+          { "name": "endLine", "in": "query", "schema": { "type": "integer", "minimum": 1 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FileContent" } } }
+          },
+          "404": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/projects/{projectId}/files/diff": {
+      "get": {
+        "operationId": "getFileDiff",
+        "summary": "Structured diff for a file at a commit against its parent",
+        "parameters": [
+          { "$ref": "#/components/parameters/ProjectId" },
+          { "name": "path", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "commit", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FileDiff" } } }
+          },
+          "404": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/projects/{projectId}/decisions": {
+      "get": {
+        "operationId": "listDecisions",
+        "summary": "List decisions",
+        "parameters": [
+          { "$ref": "#/components/parameters/ProjectId" },
+          { "name": "status", "in": "query", "schema": { "$ref": "#/components/schemas/DecisionStatus" } },
+          { "name": "explicitness", "in": "query", "schema": { "$ref": "#/components/schemas/DecisionExplicitness" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["items"],
+                  "properties": { "items": { "type": "array", "items": { "$ref": "#/components/schemas/Decision" } } }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/decisions/{decisionId}": {
+      "get": {
+        "operationId": "getDecision",
+        "summary": "Get a decision with its history",
+        "parameters": [
+          { "$ref": "#/components/parameters/ProjectId" },
+          { "name": "decisionId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DecisionDetail" } } }
+          },
+          "404": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/projects/{projectId}/questions": {
+      "get": {
+        "operationId": "listQuestions",
+        "summary": "List open questions",
+        "parameters": [
+          { "$ref": "#/components/parameters/ProjectId" },
+          { "name": "status", "in": "query", "schema": { "$ref": "#/components/schemas/QuestionStatus" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["items"],
+                  "properties": { "items": { "type": "array", "items": { "$ref": "#/components/schemas/Question" } } }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/questions/{questionId}": {
+      "get": {
+        "operationId": "getQuestion",
+        "summary": "Get a single question",
+        "parameters": [
+          { "$ref": "#/components/parameters/ProjectId" },
+          { "name": "questionId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Question" } } }
+          },
+          "404": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/projects/{projectId}/threads": {
+      "get": {
+        "operationId": "listThreads",
+        "summary": "List conversation threads for a project",
+        "parameters": [
+          { "$ref": "#/components/parameters/ProjectId" },
+          { "name": "commit", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["items"],
+                  "properties": { "items": { "type": "array", "items": { "$ref": "#/components/schemas/Thread" } } }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/threads/{threadId}/messages": {
+      "get": {
+        "operationId": "listThreadMessages",
+        "summary": "List messages in a thread, paginated by cursor",
+        "parameters": [
+          { "$ref": "#/components/parameters/ProjectId" },
+          { "name": "threadId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "cursor", "in": "query", "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 30 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessagePage" } } }
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/chat/runs": {
+      "post": {
+        "operationId": "createChatRun",
+        "summary": "Start a chat run (assistant response), streamed via /runs/{runId}/events",
+        "parameters": [{ "$ref": "#/components/parameters/ProjectId" }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ChatRunCreateRequest" } } }
+        },
+        "responses": {
+          "202": {
+            "description": "Run accepted",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ChatRun" } } }
+          },
+          "422": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/runs/{runId}": {
+      "get": {
+        "operationId": "getRun",
+        "summary": "Get run status",
+        "parameters": [{ "$ref": "#/components/parameters/RunId" }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ChatRun" } } }
+          }
+        }
+      }
+    },
+    "/runs/{runId}/events": {
+      "get": {
+        "operationId": "streamRunEvents",
+        "summary": "Server-Sent Events stream of RunEvent (see src/features/chat/streaming/types.ts for the discriminated union)",
+        "parameters": [
+          { "$ref": "#/components/parameters/RunId" },
+          { "name": "Last-Event-ID", "in": "header", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "text/event-stream of RunEvent frames" }
+        }
+      }
+    },
+    "/runs/{runId}/cancel": {
+      "post": {
+        "operationId": "cancelRun",
+        "summary": "Cancel an in-flight run",
+        "parameters": [{ "$ref": "#/components/parameters/RunId" }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ChatRun" } } }
+          }
+        }
+      }
+    },
+    "/providers": {
+      "get": {
+        "operationId": "listProviders",
+        "summary": "List configured LLM providers",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["items"],
+                  "properties": { "items": { "type": "array", "items": { "$ref": "#/components/schemas/Provider" } } }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/providers/{providerName}": {
+      "get": {
+        "operationId": "getProvider",
+        "summary": "Get a single provider",
+        "parameters": [{ "name": "providerName", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Provider" } } }
+          },
+          "404": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/projects/{projectId}/settings/providers": {
+      "put": {
+        "operationId": "updateProviderSettings",
+        "summary": "Set the default provider/model and per-task routing",
+        "parameters": [{ "$ref": "#/components/parameters/ProjectId" }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProviderSettingsUpdateRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProjectStatus" } } }
+          }
+        }
+      }
+    },
+    "/speech/providers": {
+      "get": {
+        "operationId": "listSpeechProviders",
+        "summary": "List configured speech providers",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["items"],
+                  "properties": { "items": { "type": "array", "items": { "$ref": "#/components/schemas/Provider" } } }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/speech/voices": {
+      "get": {
+        "operationId": "listVoices",
+        "summary": "List available voices, optionally filtered by provider",
+        "parameters": [{ "name": "provider", "in": "query", "schema": { "type": "string" } }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["items"],
+                  "properties": { "items": { "type": "array", "items": { "$ref": "#/components/schemas/Voice" } } }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/speech/voices/preview": {
+      "post": {
+        "operationId": "previewVoice",
+        "summary": "Generate a short spoken sample for a voice",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VoicePreviewRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VoicePreview" } } }
+          },
+          "429": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/projects/{projectId}/settings/speech": {
+      "put": {
+        "operationId": "updateSpeechSettings",
+        "summary": "Persist the selected speech provider/voice/rate",
+        "parameters": [{ "$ref": "#/components/parameters/ProjectId" }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SpeechSettings" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SpeechSettings" } } }
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/reading-sessions": {
+      "post": {
+        "operationId": "createReadingSession",
+        "summary": "Start a reading session for a document",
+        "parameters": [{ "$ref": "#/components/parameters/ProjectId" }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ReadingSessionCreateRequest" } } }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ReadingSession" } } }
+          }
+        }
+      }
+    },
+    "/reading-sessions/{sessionId}": {
+      "get": {
+        "operationId": "getReadingSession",
+        "summary": "Get a reading session",
+        "parameters": [{ "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ReadingSession" } } }
+          },
+          "404": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/reading-sessions/{sessionId}/stop": {
+      "post": {
+        "operationId": "stopReadingSession",
+        "summary": "Stop/checkpoint a reading session",
+        "parameters": [{ "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "204": { "description": "Stopped" } }
+      }
+    },
+    "/reading-sessions/{sessionId}/segments/{index}/audio": {
+      "get": {
+        "operationId": "getReadingSegmentAudio",
+        "summary": "Stream the audio for a single reading segment",
+        "parameters": [
+          { "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "index", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 0 } }
+        ],
+        "responses": {
+          "200": { "description": "audio/mpeg stream" }
+        }
+      }
+    },
+    "/diagnostics": {
+      "get": {
+        "operationId": "getDiagnostics",
+        "summary": "Backend diagnostics snapshot",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Diagnostics" } } }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "ProjectId": { "name": "projectId", "in": "path", "required": true, "schema": { "type": "string" } },
+      "CommitHash": { "name": "commitHash", "in": "path", "required": true, "schema": { "type": "string" } },
+      "RunId": { "name": "runId", "in": "path", "required": true, "schema": { "type": "string" } }
+    },
+    "responses": {
+      "Problem": {
+        "description": "Error",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiProblem" } } }
+      }
+    },
+    "schemas": {
+      "HealthStatus": {
+        "type": "object",
+        "required": ["status"],
+        "properties": { "status": { "type": "string", "enum": ["ok", "degraded"] } }
+      },
+      "ApiProblem": {
+        "type": "object",
+        "required": ["title", "status"],
+        "properties": {
+          "type": { "type": "string" },
+          "title": { "type": "string" },
+          "status": { "type": "integer" },
+          "detail": { "type": "string" },
+          "instance": { "type": "string" },
+          "code": { "type": "string" },
+          "requestId": { "type": "string" },
+          "errors": {
+            "type": "object",
+            "additionalProperties": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      },
+      "DbStatus": { "type": "string", "enum": ["ready", "scanning", "error"] },
+      "ConnectionState": {
+        "type": "string",
+        "enum": ["connected", "connecting", "reconnecting", "disconnected", "degraded"]
+      },
+      "Project": {
+        "type": "object",
+        "required": ["id", "name", "displayPath", "defaultBranch", "activeBranch", "dbStatus", "createdAt"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "displayPath": { "type": "string", "description": "Safe, display-only path (never an absolute filesystem path unless necessary)." },
+          "defaultBranch": { "type": "string" },
+          "activeBranch": { "type": "string" },
+          "activeCommitHash": { "type": "string" },
+          "lastScanAt": { "type": "string", "format": "date-time" },
+          "decisionsActiveCount": { "type": "integer" },
+          "questionsOpenCount": { "type": "integer" },
+          "dbStatus": { "$ref": "#/components/schemas/DbStatus" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ProjectCreateRequest": {
+        "type": "object",
+        "required": ["path"],
+        "properties": { "path": { "type": "string" }, "name": { "type": "string" } }
+      },
+      "ProjectStatus": {
+        "type": "object",
+        "required": ["projectId", "connection", "scanning", "activeBranch"],
+        "properties": {
+          "projectId": { "type": "string" },
+          "connection": { "$ref": "#/components/schemas/ConnectionState" },
+          "scanning": { "type": "boolean" },
+          "lastScanAt": { "type": "string", "format": "date-time" },
+          "defaultProvider": { "type": "string" },
+          "defaultVoice": { "type": "string" },
+          "activeBranch": { "type": "string" },
+          "activeCommitHash": { "type": "string" }
+        }
+      },
+      "CommitAnalysisStatus": { "type": "string", "enum": ["pending", "analyzed", "failed"] },
+      "Commit": {
+        "type": "object",
+        "required": ["hash", "shortHash", "subject", "message", "author", "authoredAt", "branch", "analysisStatus"],
+        "properties": {
+          "hash": { "type": "string" },
+          "shortHash": { "type": "string" },
+          "subject": { "type": "string" },
+          "message": { "type": "string" },
+          "author": { "type": "string" },
+          "authoredAt": { "type": "string", "format": "date-time" },
+          "branch": { "type": "string" },
+          "changedDocPaths": { "type": "array", "items": { "type": "string" } },
+          "changedCodePaths": { "type": "array", "items": { "type": "string" } },
+          "summary": { "type": "string" },
+          "decisionsNew": { "type": "integer" },
+          "questionsOpen": { "type": "integer" },
+          "questionsResolved": { "type": "integer" },
+          "analysisStatus": { "$ref": "#/components/schemas/CommitAnalysisStatus" },
+          "analysisProvider": { "type": "string" }
+        }
+      },
+      "CommitPage": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/Commit" } },
+          "nextCursor": { "type": "string" }
+        }
+      },
+      "FileTreeEntry": {
+        "type": "object",
+        "required": ["path", "type"],
+        "properties": {
+          "path": { "type": "string" },
+          "type": { "type": "string", "enum": ["file", "directory"] },
+          "changed": { "type": "boolean" }
+        }
+      },
+      "FileContent": {
+        "type": "object",
+        "required": ["path", "commitHash", "language", "sizeBytes", "lineCount", "truncated", "content", "startLine", "endLine"],
+        "properties": {
+          "path": { "type": "string" },
+          "commitHash": { "type": "string" },
+          "language": { "type": "string" },
+          "sizeBytes": { "type": "integer" },
+          "lineCount": { "type": "integer" },
+          "truncated": { "type": "boolean" },
+          "content": { "type": "string" },
+          "startLine": { "type": "integer" },
+          "endLine": { "type": "integer" }
+        }
+      },
+      "DiffFileStatus": { "type": "string", "enum": ["added", "modified", "deleted", "renamed"] },
+      "DiffLineType": { "type": "string", "enum": ["added", "removed", "context"] },
+      "DiffLine": {
+        "type": "object",
+        "required": ["type", "content"],
+        "properties": {
+          "type": { "$ref": "#/components/schemas/DiffLineType" },
+          "content": { "type": "string" },
+          "oldLineNumber": { "type": "integer" },
+          "newLineNumber": { "type": "integer" }
+        }
+      },
+      "DiffHunk": {
+        "type": "object",
+        "required": ["header", "lines"],
+        "properties": {
+          "header": { "type": "string" },
+          "lines": { "type": "array", "items": { "$ref": "#/components/schemas/DiffLine" } }
+        }
+      },
+      "FileDiff": {
+        "type": "object",
+        "required": ["newPath", "status", "commitHash", "additions", "deletions", "hunks"],
+        "properties": {
+          "oldPath": { "type": "string" },
+          "newPath": { "type": "string" },
+          "status": { "$ref": "#/components/schemas/DiffFileStatus" },
+          "commitHash": { "type": "string" },
+          "parentHash": { "type": "string" },
+          "additions": { "type": "integer" },
+          "deletions": { "type": "integer" },
+          "hunks": { "type": "array", "items": { "$ref": "#/components/schemas/DiffHunk" } }
+        }
+      },
+      "DecisionStatus": { "type": "string", "enum": ["active", "superseded", "revoked", "candidate"] },
+      "DecisionExplicitness": { "type": "string", "enum": ["explicit", "inferred", "user_confirmed"] },
+      "DecisionConfidence": { "type": "string", "enum": ["high", "medium", "low"] },
+      "Decision": {
+        "type": "object",
+        "required": ["id", "title", "description", "status", "explicitness", "confidence", "commitHash", "createdAt"],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "status": { "$ref": "#/components/schemas/DecisionStatus" },
+          "explicitness": { "$ref": "#/components/schemas/DecisionExplicitness" },
+          "confidence": { "$ref": "#/components/schemas/DecisionConfidence" },
+          "commitHash": { "type": "string" },
+          "filePath": { "type": "string" },
+          "heading": { "type": "string" },
+          "startLine": { "type": "integer" },
+          "endLine": { "type": "integer" },
+          "supersedesId": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "DecisionDetail": {
+        "allOf": [
+          { "$ref": "#/components/schemas/Decision" },
+          {
+            "type": "object",
+            "properties": {
+              "supersededByIds": { "type": "array", "items": { "type": "string" } },
+              "relatedCommitHashes": { "type": "array", "items": { "type": "string" } },
+              "relatedQuestionIds": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        ]
+      },
+      "QuestionStatus": { "type": "string", "enum": ["open", "resolved", "dismissed"] },
+      "Question": {
+        "type": "object",
+        "required": ["id", "question", "status", "commitHash", "createdAt"],
+        "properties": {
+          "id": { "type": "string" },
+          "question": { "type": "string" },
+          "status": { "$ref": "#/components/schemas/QuestionStatus" },
+          "commitHash": { "type": "string" },
+          "filePath": { "type": "string" },
+          "startLine": { "type": "integer" },
+          "endLine": { "type": "integer" },
+          "heading": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "resolvedCommitHash": { "type": "string" },
+          "resolution": { "type": "string" }
+        }
+      },
+      "ChatScope": { "type": "string", "enum": ["docs", "code"] },
+      "Thread": {
+        "type": "object",
+        "required": ["id", "projectId", "scope", "createdAt", "updatedAt", "messageCount"],
+        "properties": {
+          "id": { "type": "string" },
+          "projectId": { "type": "string" },
+          "commitHash": { "type": "string" },
+          "scope": { "$ref": "#/components/schemas/ChatScope" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "messageCount": { "type": "integer" }
+        }
+      },
+      "SourceReferenceKind": {
+        "type": "string",
+        "enum": ["document", "document_diff", "code", "decision", "question", "conversation"]
+      },
+      "SourceReference": {
+        "type": "object",
+        "required": ["id", "kind", "label", "valid"],
+        "properties": {
+          "id": { "type": "string" },
+          "kind": { "$ref": "#/components/schemas/SourceReferenceKind" },
+          "path": { "type": "string" },
+          "commitHash": { "type": "string" },
+          "startLine": { "type": "integer" },
+          "endLine": { "type": "integer" },
+          "heading": { "type": "string" },
+          "label": { "type": "string" },
+          "valid": { "type": "boolean" }
+        }
+      },
+      "ToolActivityStatus": { "type": "string", "enum": ["started", "completed", "failed"] },
+      "ToolActivity": {
+        "type": "object",
+        "required": ["id", "name", "status", "startedAt"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "status": { "$ref": "#/components/schemas/ToolActivityStatus" },
+          "detail": { "type": "string" },
+          "startedAt": { "type": "string", "format": "date-time" },
+          "completedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "MessageRole": { "type": "string", "enum": ["user", "assistant"] },
+      "MessageStatus": { "type": "string", "enum": ["complete", "failed", "cancelled"] },
+      "Message": {
+        "type": "object",
+        "required": ["id", "threadId", "role", "content", "createdAt", "scope", "status"],
+        "properties": {
+          "id": { "type": "string" },
+          "threadId": { "type": "string" },
+          "role": { "$ref": "#/components/schemas/MessageRole" },
+          "content": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "scope": { "$ref": "#/components/schemas/ChatScope" },
+          "provider": { "type": "string" },
+          "model": { "type": "string" },
+          "sources": { "type": "array", "items": { "$ref": "#/components/schemas/SourceReference" } },
+          "toolActivity": { "type": "array", "items": { "$ref": "#/components/schemas/ToolActivity" } },
+          "decisionsDetected": { "type": "array", "items": { "type": "string" } },
+          "questionsDetected": { "type": "array", "items": { "type": "string" } },
+          "durationMs": { "type": "integer" },
+          "status": { "$ref": "#/components/schemas/MessageStatus" }
+        }
+      },
+      "MessagePage": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/Message" } },
+          "nextCursor": { "type": "string" }
+        }
+      },
+      "ChatRunCreateRequest": {
+        "type": "object",
+        "required": ["commitHash", "scope", "message"],
+        "properties": {
+          "threadId": { "type": "string" },
+          "commitHash": { "type": "string" },
+          "scope": { "$ref": "#/components/schemas/ChatScope" },
+          "message": { "type": "string" },
+          "provider": { "type": "string" }
+        }
+      },
+      "ChatRunStatus": { "type": "string", "enum": ["queued", "running", "completed", "failed", "cancelled"] },
+      "ChatRun": {
+        "type": "object",
+        "required": ["id", "threadId", "status"],
+        "properties": {
+          "id": { "type": "string" },
+          "threadId": { "type": "string" },
+          "status": { "$ref": "#/components/schemas/ChatRunStatus" }
+        }
+      },
+      "ProviderCapability": {
+        "type": "string",
+        "enum": [
+          "conversation",
+          "structured_output",
+          "streaming",
+          "thread_resume",
+          "repository_access",
+          "tool_use",
+          "code_inspection",
+          "citations"
+        ]
+      },
+      "ProviderTask": {
+        "type": "string",
+        "enum": ["commit_analysis", "documentation_chat", "code_inspection", "document_explanation"]
+      },
+      "ProviderAvailability": { "type": "string", "enum": ["available", "unavailable", "unknown"] },
+      "Provider": {
+        "type": "object",
+        "required": ["name", "type", "local", "availability", "authConfigured", "capabilities"],
+        "properties": {
+          "name": { "type": "string" },
+          "type": { "type": "string" },
+          "local": { "type": "boolean" },
+          "model": { "type": "string" },
+          "availability": { "$ref": "#/components/schemas/ProviderAvailability" },
+          "authConfigured": { "type": "boolean" },
+          "capabilities": { "type": "array", "items": { "$ref": "#/components/schemas/ProviderCapability" } },
+          "routedTasks": { "type": "array", "items": { "$ref": "#/components/schemas/ProviderTask" } }
+        }
+      },
+      "ProviderSettingsUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "defaultProvider": { "type": "string" },
+          "defaultModel": { "type": "string" },
+          "taskRouting": {
+            "type": "object",
+            "additionalProperties": { "type": "string" }
+          }
+        }
+      },
+      "Voice": {
+        "type": "object",
+        "required": ["id", "name", "provider", "language", "recommended", "availability"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "provider": { "type": "string" },
+          "description": { "type": "string" },
+          "language": { "type": "string" },
+          "recommended": { "type": "boolean" },
+          "availability": { "$ref": "#/components/schemas/ProviderAvailability" }
+        }
+      },
+      "SpeechSettings": {
+        "type": "object",
+        "required": ["provider", "voiceId", "language", "rate"],
+        "properties": {
+          "provider": { "type": "string" },
+          "model": { "type": "string" },
+          "voiceId": { "type": "string" },
+          "language": { "type": "string" },
+          "rate": { "type": "number" },
+          "capabilities": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "VoicePreviewRequest": {
+        "type": "object",
+        "required": ["voiceId"],
+        "properties": { "voiceId": { "type": "string" }, "text": { "type": "string" } }
+      },
+      "VoicePreview": {
+        "type": "object",
+        "required": ["voiceId", "audioUrl"],
+        "properties": { "voiceId": { "type": "string" }, "audioUrl": { "type": "string" } }
+      },
+      "ReadingMode": { "type": "string", "enum": ["verbatim", "narrate", "explain"] },
+      "AudioSegment": {
+        "type": "object",
+        "required": ["index", "text", "audioUrl"],
+        "properties": {
+          "index": { "type": "integer" },
+          "text": { "type": "string" },
+          "audioUrl": { "type": "string" },
+          "heading": { "type": "string" }
+        }
+      },
+      "ReadingSession": {
+        "type": "object",
+        "required": ["id", "projectId", "filePath", "commitHash", "voice", "mode", "segments", "createdAt", "stale"],
+        "properties": {
+          "id": { "type": "string" },
+          "projectId": { "type": "string" },
+          "filePath": { "type": "string" },
+          "commitHash": { "type": "string" },
+          "voice": { "type": "string" },
+          "mode": { "$ref": "#/components/schemas/ReadingMode" },
+          "segments": { "type": "array", "items": { "$ref": "#/components/schemas/AudioSegment" } },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "stale": { "type": "boolean" }
+        }
+      },
+      "ReadingSessionCreateRequest": {
+        "type": "object",
+        "required": ["filePath", "commitHash", "mode", "skipCode", "changesOnly"],
+        "properties": {
+          "filePath": { "type": "string" },
+          "commitHash": { "type": "string" },
+          "voice": { "type": "string" },
+          "mode": { "$ref": "#/components/schemas/ReadingMode" },
+          "skipCode": { "type": "boolean" },
+          "changesOnly": { "type": "boolean" },
+          "startLine": { "type": "integer" },
+          "endLine": { "type": "integer" }
+        }
+      },
+      "Diagnostics": {
+        "type": "object",
+        "required": ["backendVersion", "uptimeSeconds", "database", "providers", "speechProviders"],
+        "properties": {
+          "backendVersion": { "type": "string" },
+          "uptimeSeconds": { "type": "integer" },
+          "database": {
+            "type": "object",
+            "required": ["status", "path"],
+            "properties": { "status": { "type": "string" }, "path": { "type": "string" } }
+          },
+          "providers": { "type": "array", "items": { "$ref": "#/components/schemas/Provider" } },
+          "speechProviders": { "type": "array", "items": { "$ref": "#/components/schemas/Provider" } },
+          "lastError": { "type": "string" }
+        }
+      }
+    }
+  }
+}
