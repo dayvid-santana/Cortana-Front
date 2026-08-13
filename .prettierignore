@@ -8,3 +8,5 @@ src/lib/api/schema.d.ts
 public/mockServiceWorker.js
 pnpm-lock.yaml
 package-lock.json
+Dockerfile
+docker/*.template

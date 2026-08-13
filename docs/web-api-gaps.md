@@ -91,7 +91,7 @@ mocked with a generated sine-tone WAV in `src/mocks/audio.ts`). Then flip
 
 - **Decision/question-kind citations don't navigate.** `SourceReference.kind`
   includes `"decision"` and `"question"` in the contract, but the schema has
-  no field identifying *which* decision/question a citation of that kind
+  no field identifying _which_ decision/question a citation of that kind
   points to (only document-shaped fields: path/commitHash/line range).
   `SourceCitation` currently only resolves `document`/`document_diff`/`code`
   kinds to a file-viewer target (see `resolveFileViewerTarget`); citations of

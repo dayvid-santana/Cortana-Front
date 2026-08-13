@@ -37,20 +37,37 @@ Opens on `http://127.0.0.1:5173`. There is no real backend yet, so
 Once a real backend exists, point `DEVMATE_API_PROXY_TARGET` at it and set
 `VITE_ENABLE_MOCKS=false` in a local, gitignored `.env.development.local`.
 
+## Docker
+
+```bash
+docker compose up -d web        # production build, served by nginx, http://localhost:8080
+docker compose --profile dev up dev   # hot-reload dev server instead, http://localhost:5173
+```
+
+`web` is self-contained (mocks baked into the build) — no other services
+required. `docker/nginx.conf.template` proxies `/api/*` to
+`DEVMATE_API_PROXY_TARGET` (default `http://backend:8000`, resolved lazily so
+nginx starts fine with no backend present) for when a real backend exists;
+until then those requests 502, which is expected since `VITE_ENABLE_MOCKS=true`
+answers everything before it reaches the network. Vite inlines `VITE_*` vars at
+build time, so changing them means rebuilding the image
+(`docker compose build --build-arg VITE_ENABLE_MOCKS=false web`), not just
+restarting the container.
+
 ## Scripts
 
-| Script | Purpose |
-| --- | --- |
-| `npm run dev` | Start the Vite dev server (mocks on) |
-| `npm run build` | Type-check and build for production |
-| `npm run typecheck` | `tsc -b`, no emit |
-| `npm run lint` / `lint:fix` | ESLint |
-| `npm run format` / `format:check` | Prettier |
-| `npm run test` / `test:run` | Vitest (watch / single run) |
-| `npm run test:coverage` | Vitest with coverage |
-| `npm run test:e2e` | Playwright against the dev server |
-| `npm run api:generate` | Regenerate `src/lib/api/schema.d.ts` from `openapi/devmate.openapi.json` |
-| `npm run check` | format:check → lint → typecheck → test:run → build (the full local gate) |
+| Script                            | Purpose                                                                  |
+| --------------------------------- | ------------------------------------------------------------------------ |
+| `npm run dev`                     | Start the Vite dev server (mocks on)                                     |
+| `npm run build`                   | Type-check and build for production                                      |
+| `npm run typecheck`               | `tsc -b`, no emit                                                        |
+| `npm run lint` / `lint:fix`       | ESLint                                                                   |
+| `npm run format` / `format:check` | Prettier                                                                 |
+| `npm run test` / `test:run`       | Vitest (watch / single run)                                              |
+| `npm run test:coverage`           | Vitest with coverage                                                     |
+| `npm run test:e2e`                | Playwright against the dev server                                        |
+| `npm run api:generate`            | Regenerate `src/lib/api/schema.d.ts` from `openapi/devmate.openapi.json` |
+| `npm run check`                   | format:check → lint → typecheck → test:run → build (the full local gate) |
 
 ## Project layout
 
