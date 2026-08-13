@@ -10,11 +10,13 @@ interface UiPreferencesState {
   contextPanelOpen: boolean;
   contextPanelWidth: number;
   diffViewMode: DiffViewMode;
+  commandPaletteOpen: boolean;
   setTheme: (theme: Theme) => void;
   toggleSidebar: () => void;
   setContextPanelOpen: (open: boolean) => void;
   setContextPanelWidth: (width: number) => void;
   setDiffViewMode: (mode: DiffViewMode) => void;
+  setCommandPaletteOpen: (open: boolean) => void;
 }
 
 /**
@@ -30,6 +32,7 @@ export const useUiPreferencesStore = create<UiPreferencesState>()(
       contextPanelOpen: true,
       contextPanelWidth: 320,
       diffViewMode: "unified",
+      commandPaletteOpen: false,
       setTheme: (theme) => {
         set({ theme });
       },
@@ -45,10 +48,20 @@ export const useUiPreferencesStore = create<UiPreferencesState>()(
       setDiffViewMode: (mode) => {
         set({ diffViewMode: mode });
       },
+      setCommandPaletteOpen: (open) => {
+        set({ commandPaletteOpen: open });
+      },
     }),
     {
       name: "devmate.ui-preferences",
       version: 1,
+      partialize: (state) => ({
+        theme: state.theme,
+        sidebarCollapsed: state.sidebarCollapsed,
+        contextPanelOpen: state.contextPanelOpen,
+        contextPanelWidth: state.contextPanelWidth,
+        diffViewMode: state.diffViewMode,
+      }),
     },
   ),
 );

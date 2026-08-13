@@ -18,7 +18,10 @@ export function isSafeExternalUrl(rawUrl: string): boolean {
 /** Relative, in-app links (e.g. "#heading", "/projects/x") are always safe. */
 export function isRelativeUrl(rawUrl: string): boolean {
   return (
-    rawUrl.startsWith("/") || rawUrl.startsWith("#") || rawUrl.startsWith("./") || rawUrl.startsWith("../")
+    rawUrl.startsWith("/") ||
+    rawUrl.startsWith("#") ||
+    rawUrl.startsWith("./") ||
+    rawUrl.startsWith("../")
   );
 }
 

@@ -22,9 +22,12 @@
 
   --muted-foreground: hsl(220 9% 40%);
 
-  --success: hsl(152 60% 32%);
+  /* success/warning lightness is tuned to clear WCAG AA 4.5:1 both against
+     the page background and against their own bg-X/10 badge tint — see
+     docs/web-api-gaps.md for the contrast math. */
+  --success: hsl(152 60% 24%);
   --success-foreground: hsl(0 0% 100%);
-  --warning: hsl(38 92% 38%);
+  --warning: hsl(38 92% 28%);
   --warning-foreground: hsl(0 0% 100%);
   --danger: hsl(2 72% 45%);
   --danger-foreground: hsl(0 0% 100%);
@@ -33,16 +36,14 @@
   --code-scope: hsl(271 65% 47%);
 
   --selected-line: hsl(48 96% 62%);
-  --diff-added: hsl(152 60% 32%);
+  --diff-added: hsl(152 60% 24%);
   --diff-added-bg: hsl(152 60% 95%);
   --diff-removed: hsl(2 72% 45%);
   --diff-removed-bg: hsl(2 72% 96%);
   --diff-context: hsl(220 9% 40%);
 
-  --font-sans:
-    ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono:
-    ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, monospace;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, monospace;
 }
 
 @media (prefers-color-scheme: dark) {

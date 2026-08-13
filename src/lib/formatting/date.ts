@@ -7,8 +7,13 @@ const RELATIVE_UNITS: readonly [Intl.RelativeTimeFormatUnit, number][] = [
   ["minute", 60],
 ];
 
-const relativeFormatter = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
-const absoluteFormatter = new Intl.DateTimeFormat(undefined, {
+// The app's UI copy is all English, so date/time formatting is pinned to
+// "en-US" rather than the host OS locale — otherwise a machine set to a
+// different regional locale would render "há 3 horas" next to English
+// labels everywhere else in the interface.
+const LOCALE = "en-US";
+const relativeFormatter = new Intl.RelativeTimeFormat(LOCALE, { numeric: "auto" });
+const absoluteFormatter = new Intl.DateTimeFormat(LOCALE, {
   dateStyle: "medium",
   timeStyle: "short",
 });
