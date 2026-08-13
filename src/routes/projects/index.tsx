@@ -23,6 +23,20 @@ function ProjectsIndexPage() {
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4 p-4">
+      <div className="border-border flex items-center gap-4 border-b pb-4">
+        <img
+          src="/Diana.png"
+          alt=""
+          className="h-20 w-16 shrink-0 rounded-sm object-cover object-top"
+        />
+        <div>
+          <p className="text-foreground text-sm font-semibold">DevMate</p>
+          <p className="text-muted-foreground text-[13px]">
+            Your local assistant for understanding how this repository evolves.
+          </p>
+        </div>
+      </div>
+
       <PageHeader
         title="Projects"
         description="Repositories DevMate knows about."
