@@ -131,8 +131,8 @@ export function buildRunEventScript({
 
   const answer =
     scope === "code"
-      ? `Looking at the implementation, ${"TokenService.issue_access_token"} builds a JWT payload with a 15 minute expiry and delegates signing to a not-yet-implemented ${"_encode"} method [src/auth/token_service.py#TokenService:L11-L23@${HEAD_COMMIT_HASH.slice(0, 7)}]. The documentation confirms this is the intended access-token lifetime [docs/auth.md#Access tokens:L14-L19@${HEAD_COMMIT_HASH.slice(0, 7)}].`
-      : `Based on "${userMessage.slice(0, 60)}", this commit documents the JWT-based login flow and access token format [docs/auth.md#Access tokens:L14-L19@${HEAD_COMMIT_HASH.slice(0, 7)}]. Refresh token revocation is called out as undecided [docs/auth.md#Revogação:L21-L24@${HEAD_COMMIT_HASH.slice(0, 7)}].`;
+      ? `Looking at the implementation, \`TokenService.issue_access_token\` builds a JWT payload with a 15 minute expiry and delegates signing to a not-yet-implemented \`_encode\` method. The documentation confirms this is the intended access-token lifetime.`
+      : `Based on "${userMessage.slice(0, 60)}", this commit documents the JWT-based login flow and access token format. Refresh token revocation is called out as undecided.`;
 
   for (const chunk of words(answer)) {
     events.push({ type: "assistant.delta", eventId: nextId(), runId, text: chunk });
@@ -147,10 +147,10 @@ export function buildRunEventScript({
       kind: "document",
       path: "docs/auth.md",
       commitHash: HEAD_COMMIT_HASH,
-      startLine: 14,
-      endLine: 19,
+      startLine: 15,
+      endLine: 17,
       heading: "Access tokens",
-      label: `docs/auth.md · Access tokens · L14–19 · ${HEAD_COMMIT_HASH.slice(0, 7)}`,
+      label: `docs/auth.md · Access tokens · L15–17 · ${HEAD_COMMIT_HASH.slice(0, 7)}`,
       valid: true,
     },
   });
@@ -164,9 +164,9 @@ export function buildRunEventScript({
       path: "docs/auth.md",
       commitHash: HEAD_COMMIT_HASH,
       startLine: 21,
-      endLine: 24,
+      endLine: 23,
       heading: "Revogação",
-      label: `docs/auth.md · Revogação · L21–24 · ${HEAD_COMMIT_HASH.slice(0, 7)}`,
+      label: `docs/auth.md · Revogação · L21–23 · ${HEAD_COMMIT_HASH.slice(0, 7)}`,
       valid: true,
     },
   });
@@ -182,9 +182,9 @@ export function buildRunEventScript({
         path: "src/auth/token_service.py",
         commitHash: HEAD_COMMIT_HASH,
         startLine: 11,
-        endLine: 23,
+        endLine: 24,
         heading: "TokenService",
-        label: `src/auth/token_service.py · TokenService · L11–23 · ${HEAD_COMMIT_HASH.slice(0, 7)}`,
+        label: `src/auth/token_service.py · TokenService · L11–24 · ${HEAD_COMMIT_HASH.slice(0, 7)}`,
         valid: true,
       },
     });

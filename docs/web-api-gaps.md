@@ -3,6 +3,18 @@
 This document records why the frontend was built the way it was, given the actual
 state of this repository, and what's deliberately deferred.
 
+> **Update:** a real DevMate backend now exists (sibling repo, e.g. `../Cortana`,
+> `devmate serve`) and implements `/health`, `/status` and `/chat` against the
+> same `ConversationService`/`InspectionConversationService` the CLI uses — see
+> its `src/devmate/api/app.py`. Everything below describing "no backend exists"
+> is historical context for why the mocks-first approach was chosen; it no
+> longer describes the current state for those three endpoints. The rest of
+> `openapi/devmate.openapi.json` (projects, decisions, questions, threads,
+> streaming chat runs, voices, reading sessions, diagnostics) still has no
+> server implementation, so MSW mocks remain necessary for the rest of the UI.
+> See the root README's "Running against the real backend" section for how to
+> point this app at it.
+
 ## 1. Repository state at the start of this work
 
 The repository was **not a git repo**, had **no Python backend**, and its only
@@ -143,3 +155,12 @@ not because they're still open:
   second `<li>` inside a parent one) — both are real WCAG list-structure
   violations, not just Playwright noise; fixed by moving the semantics to
   the actual outermost element in each case.
+- The browser MSW worker (`src/main.tsx`) started with
+  `onUnhandledRequest: "bypass"`, while Vitest's node server
+  (`src/test/setup.ts`) uses `"error"`. In the browser this meant a request
+  to a path with no mock handler silently fell through to Vite's `/api`
+  proxy — which has no real backend behind it — surfacing as a bare
+  `ECONNREFUSED 127.0.0.1:8000` in the terminal with no indication MSW was
+  even involved. Changed to `"warn"` (not `"error"`, which would throw and
+  break rendering for a single missed route) so a missing handler now logs
+  a clear MSW warning naming the exact request instead.

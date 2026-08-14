@@ -191,8 +191,8 @@ export const decisions: Decision[] = [
     commitHash: HEAD_COMMIT_HASH,
     filePath: "docs/auth.md",
     heading: "Access tokens",
-    startLine: 14,
-    endLine: 19,
+    startLine: 15,
+    endLine: 17,
     createdAt: "2026-08-13T13:45:00Z",
   },
 ];
@@ -206,7 +206,7 @@ export const questions: Question[] = [
     filePath: "docs/auth.md",
     heading: "Revogação",
     startLine: 21,
-    endLine: 24,
+    endLine: 23,
     createdAt: "2026-08-13T13:45:00Z",
   },
 ];
@@ -239,10 +239,9 @@ export const seedMessages: Record<string, Message[]> = {
       threadId: "thread_1",
       role: "assistant",
       content:
-        "This commit documents the login flow and introduces JWT access tokens " +
-        "[docs/auth.md#Access tokens:L14-L19@a17d3e]. Revocation for refresh " +
-        "tokens is still an open question " +
-        "[docs/auth.md#Revogação:L21-L24@a17d3e].",
+        "This commit documents the login flow and introduces JWT access tokens with a " +
+        "15 minute lifetime. Revocation for refresh tokens is still an open question — " +
+        "the docs flag the choice between a deny-list and short-lived rotating tokens as undecided.",
       createdAt: "2026-08-13T14:00:45Z",
       scope: "docs",
       provider: "anthropic",
@@ -255,10 +254,10 @@ export const seedMessages: Record<string, Message[]> = {
           kind: "document",
           path: "docs/auth.md",
           commitHash: HEAD_COMMIT_HASH,
-          startLine: 14,
-          endLine: 19,
+          startLine: 15,
+          endLine: 17,
           heading: "Access tokens",
-          label: "docs/auth.md · Access tokens · L14–19 · a17d3e",
+          label: "docs/auth.md · Access tokens · L15–17 · a17d3e",
           valid: true,
         },
         {
@@ -267,9 +266,9 @@ export const seedMessages: Record<string, Message[]> = {
           path: "docs/auth.md",
           commitHash: HEAD_COMMIT_HASH,
           startLine: 21,
-          endLine: 24,
+          endLine: 23,
           heading: "Revogação",
-          label: "docs/auth.md · Revogação · L21–24 · a17d3e",
+          label: "docs/auth.md · Revogação · L21–23 · a17d3e",
           valid: true,
         },
       ],

@@ -54,6 +54,32 @@ build time, so changing them means rebuilding the image
 (`docker compose build --build-arg VITE_ENABLE_MOCKS=false web`), not just
 restarting the container.
 
+### Running against the real backend
+
+A real DevMate backend now exists (sibling repo, e.g. `../Cortana`) and covers
+`/health`, `/status` and `/chat` — see that repo's
+[docs/docker-usage.md](../Cortana/docs/docker-usage.md#10-conectar-com-o-frontend-devmate-web)
+for how to start its `backend` service. The rest of `openapi/devmate.openapi.json`
+is still mocks-only (see [docs/web-api-gaps.md](docs/web-api-gaps.md)), so most
+screens still need `VITE_ENABLE_MOCKS=true` to work end to end.
+
+```bash
+# In ../Cortana: docker compose run --rm devmate init && scan, then
+# docker compose up -d backend (creates the shared devmate-net network).
+
+# Here, point at the real backend for the surface that already exists:
+docker compose build --build-arg VITE_ENABLE_MOCKS=false web
+docker compose up -d web        # http://localhost:8080, /api/* -> backend:8000
+
+# Or hot-reload, with mocks off for this run only:
+VITE_ENABLE_MOCKS=false docker compose --profile dev up dev
+```
+
+Both `web` and `dev` join the `devmate-net` network (fixed name, shared with
+the backend's compose — see the `networks:` comment in `docker-compose.yml`),
+so `http://backend:8000` resolves regardless of which project's `up` ran
+first.
+
 ## Scripts
 
 | Script                            | Purpose                                                                  |

@@ -10,7 +10,12 @@ async function enableMocksIfConfigured(): Promise<void> {
   }
   const { worker } = await import("@/mocks/browser");
   await worker.start({
-    onUnhandledRequest: "bypass",
+    // "bypass" let unmocked requests fall through to Vite's /api proxy,
+    // which has no real backend to receive them — so a missing handler
+    // surfaced as an opaque ECONNREFUSED in the terminal instead of a
+    // clear MSW warning naming the request. "warn" matches the "error"
+    // policy already used under Vitest (src/test/setup.ts).
+    onUnhandledRequest: "warn",
     serviceWorker: { url: "/mockServiceWorker.js" },
   });
 }
