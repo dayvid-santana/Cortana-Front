@@ -18,6 +18,13 @@ test.describe("Projects", () => {
     await expect(page.getByRole("link", { name: "acme-api" })).toBeVisible();
   });
 
+  test("a deep link for a project from an earlier mock session remains usable", async ({ page }) => {
+    await page.goto("/projects/proj_example-project/overview");
+
+    await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
+    await expect(page.getByText("document authentication flow").first()).toBeVisible();
+  });
+
   test("adding a project with an empty path shows a validation error and does not navigate away", async ({
     page,
   }) => {

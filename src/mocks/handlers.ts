@@ -25,11 +25,12 @@ type SpeechSettings = components["schemas"]["SpeechSettings"];
 type ReadingSession = components["schemas"]["ReadingSession"];
 type ChatRunStatus = components["schemas"]["ChatRunStatus"];
 
-// Mirrors the same env var the API client uses, so handler paths always
-// match what the client actually requests — relative in the browser
-// (resolved against the page origin) and absolute under Vitest/Node, which
-// has no page origin to resolve relative URLs against. See .env.test.
-const API = import.meta.env.VITE_DEVMATE_API_BASE_URL ?? "/api/v1";
+// Mirrors the same env var the API client uses. Give MSW absolute patterns:
+// although the client can use a relative base URL, the worker may otherwise
+// resolve a relative handler against a different context and pass requests
+// through instead of matching them.
+const apiBaseUrl = import.meta.env.VITE_DEVMATE_API_BASE_URL ?? "/api/v1";
+const API = new URL(apiBaseUrl, globalThis.location.origin).href.replace(/\/$/, "");
 
 // ---- Mutable in-memory mock state -----------------------------------------
 
@@ -67,7 +68,18 @@ function notFound(title: string) {
 }
 
 function findProject(projectId: string): Project | undefined {
-  return projectsState.find((candidate) => candidate.id === projectId);
+  const existing = projectsState.find((candidate) => candidate.id === projectId);
+  if (existing) return existing;
+
+  // Mock state is intentionally in memory, so a browser reload can revisit a
+  // URL for a project created in an earlier mock session. Rehydrate a fixture
+  // project for those generated IDs to keep that deep link usable.
+  if (!projectId.startsWith("proj_")) return undefined;
+
+  const displayName = projectId.slice("proj_".length).replaceAll("-", " ") || "Mock project";
+  const restored: Project = { ...project, id: projectId, name: displayName, displayPath: displayName };
+  projectsState.push(restored);
+  return restored;
 }
 
 function encodeCursor(offset: number): string {

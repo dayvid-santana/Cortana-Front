@@ -17,6 +17,9 @@ dist-ssr
 .env.local
 .env.*.local
 
+# Registro local de projetos autorizados para a API DevMate.
+.devmate-web/
+
 # Testing artifacts
 coverage
 playwright-report
