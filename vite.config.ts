@@ -23,7 +23,10 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      host: "127.0.0.1",
+      // Keep the dev-server origin aligned with the browser URL. MSW passes
+      // document navigations through to the network, and serving on a
+      // different loopback hostname can make those passthroughs fail.
+      host: "localhost",
       port: 5173,
       proxy: {
         "/api": {

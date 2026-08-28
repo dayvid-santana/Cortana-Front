@@ -41,6 +41,14 @@ export function TopBar({
         DevMate
       </Link>
 
+      <Link
+        to="/agents"
+        className="text-muted-foreground hover:text-foreground shrink-0 text-[13px] font-medium"
+        activeProps={{ className: "text-foreground" }}
+      >
+        Agents
+      </Link>
+
       {projectName && projectId ? (
         <>
           <span className="text-muted-foreground">|</span>

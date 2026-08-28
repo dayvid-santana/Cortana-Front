@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from "react-resizable-panels";
 
 import { ErrorState } from "@/components/feedback/error-state";
+import { EmptyState } from "@/components/feedback/empty-state";
 import { LoadingState } from "@/components/feedback/loading-state";
 import { ContextPanel } from "@/components/layout/context-panel";
 import { ChatComposer } from "@/features/chat/components/chat-composer";
@@ -61,10 +62,32 @@ function ChatPage() {
     bottomRef.current?.scrollIntoView({ block: "end" });
   }, [messagesQuery.data, chatRun.runState.transcript, chatRun.optimisticMessages]);
 
-  if (!commitHash) {
+  if (project.status === "pending") {
     return (
       <div className="p-4">
         <LoadingState rows={3} label="Loading chat" />
+      </div>
+    );
+  }
+
+  if (project.status === "error") {
+    return (
+      <div className="p-4">
+        <ErrorState
+          problem={toDisplayProblem(project.error)}
+          onRetry={() => void project.refetch()}
+        />
+      </div>
+    );
+  }
+
+  if (!commitHash) {
+    return (
+      <div className="p-4">
+        <EmptyState
+          title="No commit is available yet"
+          description="Run a scan for this project before starting a conversation."
+        />
       </div>
     );
   }

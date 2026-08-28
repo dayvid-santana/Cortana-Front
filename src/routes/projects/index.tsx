@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { FolderGit2, Plus } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Bot, FolderGit2, Plus } from "lucide-react";
 import { useState } from "react";
 
 import { EmptyState } from "@/components/feedback/empty-state";
@@ -41,17 +41,25 @@ function ProjectsIndexPage() {
         title="Projects"
         description="Repositories DevMate knows about."
         actions={
-          <DialogRoot open={addOpen} onOpenChange={setAddOpen}>
-            <Button onClick={() => setAddOpen(true)}>
-              <Plus size={14} aria-hidden="true" /> Add project
-            </Button>
-            <DialogContent
-              title="Add project"
-              description="Register a local repository path with DevMate."
+          <>
+            <Link
+              to="/agents"
+              className="border-border text-muted-foreground hover:bg-surface-muted hover:text-foreground inline-flex h-8 items-center gap-1.5 rounded-sm border px-3 text-[13px] font-medium"
             >
-              <AddProjectForm onCreated={() => setAddOpen(false)} />
-            </DialogContent>
-          </DialogRoot>
+              <Bot size={14} aria-hidden="true" /> Agents
+            </Link>
+            <DialogRoot open={addOpen} onOpenChange={setAddOpen}>
+              <Button onClick={() => setAddOpen(true)}>
+                <Plus size={14} aria-hidden="true" /> Add project
+              </Button>
+              <DialogContent
+                title="Add project"
+                description="Register a local repository path with DevMate."
+              >
+                <AddProjectForm onCreated={() => setAddOpen(false)} />
+              </DialogContent>
+            </DialogRoot>
+          </>
         }
       />
 

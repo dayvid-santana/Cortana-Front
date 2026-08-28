@@ -19,6 +19,28 @@ The frontend never talks to an LLM/TTS provider or the filesystem directly — e
 action goes through `/api/v1/*`, proxied to a DevMate backend in development and
 served same-origin in production.
 
+## Agents (Cortana)
+
+The `/agents` screen talks directly to a separate local agent-runner service,
+Cortana, at `http://127.0.0.1:8765` — **not** through `/api/v1` and **not**
+mocked by MSW's browser interception of the app's own origin the way the rest
+of the UI is (MSW does still intercept it for dev/tests, since it matches on
+absolute URLs too — see `src/mocks/cortana-handlers.ts`). Cortana is a plain
+backend: it exposes `/health`, `/session`, `/agents`, and the fixed
+`/agent/{context,ask,review,test,debug,task}` and `/git/commit-plan` action
+routes; every user-facing concern (forms, the task confirmation modal,
+structured result rendering, error/timeout handling) lives in the frontend.
+
+- `src/lib/api/cortana/` — typed client, request/response types, error types.
+- `src/features/agents/` — hooks, components, and the command-routing table
+  that maps a `GET /agents` entry's `command` field to the route to call.
+- The base URL is hardcoded to `http://127.0.0.1:8765` in production and only
+  overridable via `VITE_CORTANA_API_BASE_URL` in dev builds (see
+  `.env.example`) — Cortana must never be pointed at a remote host.
+- `POST /agent/task` is the only action that can create or modify files, and
+  is always gated by an explicit confirmation dialog before the frontend
+  calls it.
+
 ## Stack
 
 Vite · React 19 · TypeScript (strict) · TanStack Router · TanStack Query · Tailwind

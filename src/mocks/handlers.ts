@@ -18,6 +18,7 @@ import {
   voices,
 } from "@/mocks/fixtures";
 import { buildRunEventScript, createSseStream } from "@/mocks/streaming";
+import { cortanaHandlers } from "@/mocks/cortana-handlers";
 
 type Project = components["schemas"]["Project"];
 type Message = components["schemas"]["Message"];
@@ -77,7 +78,12 @@ function findProject(projectId: string): Project | undefined {
   if (!projectId.startsWith("proj_")) return undefined;
 
   const displayName = projectId.slice("proj_".length).replaceAll("-", " ") || "Mock project";
-  const restored: Project = { ...project, id: projectId, name: displayName, displayPath: displayName };
+  const restored: Project = {
+    ...project,
+    id: projectId,
+    name: displayName,
+    displayPath: displayName,
+  };
   projectsState.push(restored);
   return restored;
 }
@@ -135,7 +141,9 @@ export const handlers = [
       displayPath: body.path,
       defaultBranch: "main",
       activeBranch: "main",
-      activeCommitHash: "",
+      // Keep a newly registered mock project immediately usable throughout
+      // the UI, including the chat route which requires an active commit.
+      activeCommitHash: HEAD_COMMIT_HASH,
       decisionsActiveCount: 0,
       questionsOpenCount: 0,
       dbStatus: "scanning",
@@ -541,4 +549,7 @@ export const handlers = [
       headers: { "Content-Type": "audio/wav" },
     });
   }),
+
+  // ---- Cortana (local agent-runner service, separate origin) --------------------------------
+  ...cortanaHandlers,
 ];
