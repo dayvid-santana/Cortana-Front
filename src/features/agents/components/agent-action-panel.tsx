@@ -6,14 +6,13 @@ import { ErrorState } from "@/components/feedback/error-state";
 import { LoadingState } from "@/components/feedback/loading-state";
 import { Textarea } from "@/components/ui/textarea";
 import { AgentResultPanel } from "@/features/agents/components/agent-result-panel";
-import { AgentTaskConfirmDialog } from "@/features/agents/components/agent-task-confirm-dialog";
 import { ArchitectureDecisionPanel } from "@/features/agents/components/architecture-decision-panel";
+import { TaskRunPanel } from "@/features/agents/components/task-run-panel";
 import {
   useAgentAsk,
   useAgentContext,
   useAgentDebug,
   useAgentReview,
-  useAgentTask,
   useAgentTest,
   useGitCommitPlan,
 } from "@/features/agents/api/queries";
@@ -37,10 +36,13 @@ const OBJECTIVE_COMMANDS: ReadonlySet<KnownAgentCommand> = new Set([
   "task",
 ]);
 
+/** Every command except "task" is a single read-only request/response — "task" is a multi-step
+ * plan/approval/job flow with its own state machine, handled entirely by TaskRunPanel. */
+type ReadCommand = Exclude<KnownAgentCommand, "task">;
+
 export function AgentActionPanel({ agent, command, cwd, cwdValid }: AgentActionPanelProps) {
   const [objective, setObjective] = useState("");
   const [staged, setStaged] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const context = useAgentContext();
   const ask = useAgentAsk();
@@ -48,12 +50,8 @@ export function AgentActionPanel({ agent, command, cwd, cwdValid }: AgentActionP
   const test = useAgentTest();
   const debug = useAgentDebug();
   const commitPlan = useGitCommitPlan();
-  const task = useAgentTask();
 
-  const mutations: Record<
-    KnownAgentCommand,
-    UseMutationResult<CortanaAgentResponse, unknown, never>
-  > = {
+  const mutations: Record<ReadCommand, UseMutationResult<CortanaAgentResponse, unknown, never>> = {
     // Cast is safe here: each mutation's variables type matches its own runner below;
     // this record only exists so status/data/error can be read generically by command.
     context: context as unknown as UseMutationResult<CortanaAgentResponse, unknown, never>,
@@ -62,24 +60,23 @@ export function AgentActionPanel({ agent, command, cwd, cwdValid }: AgentActionP
     test: test as unknown as UseMutationResult<CortanaAgentResponse, unknown, never>,
     debug: debug as unknown as UseMutationResult<CortanaAgentResponse, unknown, never>,
     "commit-plan": commitPlan as unknown as UseMutationResult<CortanaAgentResponse, unknown, never>,
-    task: task as unknown as UseMutationResult<CortanaAgentResponse, unknown, never>,
   };
 
-  const active = mutations[command];
+  const isTask = command === "task";
+  const active = isTask ? undefined : mutations[command];
   const anyPending =
     context.isPending ||
     ask.isPending ||
     review.isPending ||
     test.isPending ||
     debug.isPending ||
-    commitPlan.isPending ||
-    task.isPending;
+    commitPlan.isPending;
 
   const needsObjective = OBJECTIVE_COMMANDS.has(command);
   const canSubmit = cwdValid && !anyPending && (!needsObjective || objective.trim().length > 0);
 
   function run() {
-    if (!canSubmit) return;
+    if (!canSubmit || active === undefined) return;
     switch (command) {
       case "context":
         context.mutate({ cwd, objective: objective.trim() });
@@ -98,21 +95,6 @@ export function AgentActionPanel({ agent, command, cwd, cwdValid }: AgentActionP
         return;
       case "commit-plan":
         commitPlan.mutate({ cwd });
-        return;
-      case "task":
-        setConfirmOpen(true);
-    }
-  }
-
-  function confirmTask() {
-    task.mutate({ cwd, objective: objective.trim() });
-  }
-
-  function retry() {
-    if (command === "task") {
-      confirmTask();
-    } else {
-      run();
     }
   }
 
@@ -160,40 +142,31 @@ export function AgentActionPanel({ agent, command, cwd, cwdValid }: AgentActionP
         </p>
       ) : null}
 
-      <div>
-        <Button
-          onClick={run}
-          disabled={!canSubmit}
-          variant={command === "task" ? "danger" : "default"}
-        >
-          {active.isPending ? "Running…" : `Run ${COMMAND_LABELS[command].toLowerCase()}`}
-        </Button>
-      </div>
+      {isTask ? (
+        <TaskRunPanel cwd={cwd} objective={objective.trim()} canSubmit={canSubmit} />
+      ) : (
+        <>
+          <div>
+            <Button onClick={run} disabled={!canSubmit}>
+              {active?.isPending ? "Running…" : `Run ${COMMAND_LABELS[command].toLowerCase()}`}
+            </Button>
+          </div>
 
-      {command === "task" ? (
-        <AgentTaskConfirmDialog
-          open={confirmOpen}
-          onOpenChange={setConfirmOpen}
-          objective={objective.trim()}
-          cwd={cwd}
-          pending={task.isPending}
-          onConfirm={confirmTask}
-        />
-      ) : null}
+          {active?.isPending ? <LoadingState rows={3} label={`Running ${agent.name}`} /> : null}
 
-      {active.isPending ? <LoadingState rows={3} label={`Running ${agent.name}`} /> : null}
+          {active?.isError ? (
+            <ErrorState problem={toDisplayCortanaProblem(active.error)} onRetry={run} />
+          ) : null}
 
-      {active.isError ? (
-        <ErrorState problem={toDisplayCortanaProblem(active.error)} onRetry={retry} />
-      ) : null}
-
-      {active.isSuccess && active.data ? (
-        isArchitectureDecisionRequired(active.data) ? (
-          <ArchitectureDecisionPanel decision={active.data} />
-        ) : (
-          <AgentResultPanel result={active.data} />
-        )
-      ) : null}
+          {active?.isSuccess && active.data ? (
+            isArchitectureDecisionRequired(active.data) ? (
+              <ArchitectureDecisionPanel decision={active.data} />
+            ) : (
+              <AgentResultPanel result={active.data} />
+            )
+          ) : null}
+        </>
+      )}
     </div>
   );
 }

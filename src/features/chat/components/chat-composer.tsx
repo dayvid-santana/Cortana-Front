@@ -1,9 +1,11 @@
-import { Send, Square } from "lucide-react";
+import { Mic, Send, Square } from "lucide-react";
 import { useState } from "react";
 import type { KeyboardEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { useSpeechRecognition } from "@/features/voice/hooks/use-speech-recognition";
+import { cn } from "@/lib/utils/cn";
 
 const WARN_LENGTH = 4000;
 
@@ -12,17 +14,39 @@ interface ChatComposerProps {
   isRunning: boolean;
   onSend: (text: string) => void;
   onCancel: () => void;
+  voiceEnabled?: boolean;
+  voiceLanguage?: string;
+  voiceAutoSend?: boolean;
 }
 
-export function ChatComposer({ disabled, isRunning, onSend, onCancel }: ChatComposerProps) {
+export function ChatComposer({
+  disabled,
+  isRunning,
+  onSend,
+  onCancel,
+  voiceEnabled = false,
+  voiceLanguage = "pt-BR",
+  voiceAutoSend = true,
+}: ChatComposerProps) {
   const [value, setValue] = useState("");
 
-  const submit = () => {
-    const trimmed = value.trim();
+  const submit = (text?: string) => {
+    const trimmed = (text ?? value).trim();
     if (!trimmed || disabled) return;
     onSend(trimmed);
     setValue("");
   };
+
+  const voice = useSpeechRecognition({
+    lang: voiceLanguage,
+    onResult: (transcript) => {
+      if (voiceAutoSend) {
+        submit(transcript);
+      } else {
+        setValue(transcript);
+      }
+    },
+  });
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
@@ -54,15 +78,34 @@ export function ChatComposer({ disabled, isRunning, onSend, onCancel }: ChatComp
             ? `${value.length} characters — consider trimming`
             : "Ctrl+Enter to send"}
         </span>
-        {isRunning ? (
-          <Button variant="outline" size="sm" onClick={onCancel}>
-            <Square size={12} aria-hidden="true" /> Cancel
-          </Button>
-        ) : (
-          <Button size="sm" onClick={submit} disabled={disabled || value.trim().length === 0}>
-            <Send size={12} aria-hidden="true" /> Send
-          </Button>
-        )}
+        <div className="flex items-center gap-1.5">
+          {voiceEnabled && voice.isSupported ? (
+            <Button
+              variant={voice.isListening ? "default" : "outline"}
+              size="sm"
+              onClick={() => (voice.isListening ? voice.stop() : voice.start())}
+              disabled={disabled && !isRunning}
+              aria-pressed={voice.isListening}
+              aria-label={voice.isListening ? "Stop listening" : "Speak your message"}
+              className={cn(voice.isListening && "animate-pulse")}
+            >
+              <Mic size={12} aria-hidden="true" />
+            </Button>
+          ) : null}
+          {isRunning ? (
+            <Button variant="outline" size="sm" onClick={onCancel}>
+              <Square size={12} aria-hidden="true" /> Cancel
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              onClick={() => submit()}
+              disabled={disabled || value.trim().length === 0}
+            >
+              <Send size={12} aria-hidden="true" /> Send
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

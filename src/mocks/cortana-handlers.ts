@@ -104,20 +104,149 @@ export const cortanaHandlers = [
     });
   }),
 
-  http.post(`${CORTANA_BASE_URL}/agent/task`, async ({ request }) => {
+  // /agent/task is deliberately absent: the real dev-agent always rejects it
+  // (deprecated=True). Task execution goes through the plan/job flow below.
+];
+
+interface MockTaskPlan {
+  id: string;
+  project_root: string;
+  project_name: string;
+  objective: string;
+  base_branch: string;
+  relevant_files: string[];
+  warnings: string[];
+  architecture_decision_required: boolean;
+  architecture_approved: boolean;
+  architecture_decision: string | null;
+  requires_confirmation: boolean;
+  created_at: string;
+}
+
+interface MockAgentJob {
+  id: string;
+  plan_id: string;
+  project_root: string;
+  objective: string;
+  status:
+    "queued" | "running" | "completed" | "partially_completed" | "failed" | "cancelled" | "blocked";
+  phase: string | null;
+  branch: string | null;
+  worktree_path: string | null;
+  worktree_removed: boolean;
+  results: Record<string, unknown>[];
+  diff: string | null;
+  error: string | null;
+  cancellation_requested: boolean;
+  resumable: boolean;
+  resume_attempts: number;
+  created_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+}
+
+let mockPlanCounter = 0;
+let mockJobCounter = 0;
+const mockPlans = new Map<string, MockTaskPlan>();
+const mockJobs = new Map<string, MockAgentJob>();
+
+export const cortanaTaskPlanHandlers = [
+  http.post(`${CORTANA_BASE_URL}/assistant/task-plans`, async ({ request }) => {
     const body = (await request.json()) as { cwd?: string; objective?: string };
     if (!body.cwd) return problem(400, "cwd is required");
-    if (body.objective?.toLowerCase().includes("architecture")) {
-      return HttpResponse.json(architectureDecision(body.objective));
-    }
-    return HttpResponse.json({
-      summary: `Task completed: "${body.objective ?? ""}".`,
-      files_changed: ["src/features/example/thing.ts"],
-      tests_run: ["unit: 42 passed"],
-      failures: [],
-      warnings: [],
-      risks: [],
-      next_steps: ["Open a PR for review."],
-    });
+    mockPlanCounter += 1;
+    const needsArchitecture = body.objective?.toLowerCase().includes("architecture") ?? false;
+    const plan: MockTaskPlan = {
+      id: `plan_${mockPlanCounter}`,
+      project_root: body.cwd,
+      project_name: body.cwd.split(/[\\/]/).filter(Boolean).pop() ?? body.cwd,
+      objective: body.objective ?? "",
+      base_branch: "main",
+      relevant_files: [],
+      warnings: needsArchitecture ? ["This objective touches a structural decision."] : [],
+      architecture_decision_required: needsArchitecture,
+      architecture_approved: false,
+      architecture_decision: null,
+      requires_confirmation: true,
+      created_at: new Date().toISOString(),
+    };
+    mockPlans.set(plan.id, plan);
+    return HttpResponse.json(plan);
+  }),
+
+  http.post(
+    `${CORTANA_BASE_URL}/assistant/task-plans/:id/architecture-approval`,
+    async ({ params, request }) => {
+      const plan = mockPlans.get(params.id as string);
+      if (!plan) return problem(404, "Plan not found");
+      const body = (await request.json()) as { decision?: string };
+      plan.architecture_approved = true;
+      plan.architecture_decision = body.decision ?? null;
+      return HttpResponse.json(plan);
+    },
+  ),
+
+  http.post(`${CORTANA_BASE_URL}/assistant/task-plans/:id/start`, ({ params }) => {
+    const plan = mockPlans.get(params.id as string);
+    if (!plan) return problem(404, "Plan not found");
+    mockJobCounter += 1;
+    const job: MockAgentJob = {
+      id: `job_${mockJobCounter}`,
+      plan_id: plan.id,
+      project_root: plan.project_root,
+      objective: plan.objective,
+      status: "completed",
+      phase: "completed",
+      branch: `dev-agent/${plan.id}`,
+      worktree_path: `/tmp/dev-agent-worktrees/${plan.id}`,
+      worktree_removed: false,
+      results: [
+        {
+          agent: "implementation",
+          summary: `Task completed: "${plan.objective}".`,
+          files_changed: ["src/features/example/thing.ts"],
+          tests_executed: ["unit: 42 passed"],
+          warnings: [],
+          next_actions: ["Open a PR for review."],
+        },
+      ],
+      diff: "diff --git a/src/features/example/thing.ts b/src/features/example/thing.ts\n+// mock diff",
+      error: null,
+      cancellation_requested: false,
+      resumable: false,
+      resume_attempts: 0,
+      created_at: new Date().toISOString(),
+      started_at: new Date().toISOString(),
+      finished_at: new Date().toISOString(),
+    };
+    mockJobs.set(job.id, job);
+    return HttpResponse.json(job);
+  }),
+
+  http.get(`${CORTANA_BASE_URL}/assistant/jobs/:id`, ({ params }) => {
+    const job = mockJobs.get(params.id as string);
+    if (!job) return problem(404, "Job not found");
+    return HttpResponse.json(job);
+  }),
+
+  http.post(`${CORTANA_BASE_URL}/assistant/jobs/:id/cancel`, ({ params }) => {
+    const job = mockJobs.get(params.id as string);
+    if (!job) return problem(404, "Job not found");
+    job.status = "cancelled";
+    return HttpResponse.json(job);
+  }),
+
+  http.post(`${CORTANA_BASE_URL}/assistant/jobs/:id/resume`, ({ params }) => {
+    const job = mockJobs.get(params.id as string);
+    if (!job) return problem(404, "Job not found");
+    job.status = "completed";
+    return HttpResponse.json(job);
+  }),
+
+  http.post(`${CORTANA_BASE_URL}/assistant/jobs/:id/cleanup`, ({ params }) => {
+    const job = mockJobs.get(params.id as string);
+    if (!job) return problem(404, "Job not found");
+    job.worktree_removed = true;
+    return HttpResponse.json(job);
   }),
 ];

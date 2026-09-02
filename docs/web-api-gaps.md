@@ -3,17 +3,20 @@
 This document records why the frontend was built the way it was, given the actual
 state of this repository, and what's deliberately deferred.
 
-> **Update:** a real DevMate backend now exists (sibling repo, e.g. `../Cortana`,
-> `devmate serve`) and implements `/health`, `/status` and `/chat` against the
-> same `ConversationService`/`InspectionConversationService` the CLI uses — see
-> its `src/devmate/api/app.py`. Everything below describing "no backend exists"
-> is historical context for why the mocks-first approach was chosen; it no
-> longer describes the current state for those three endpoints. The rest of
-> `openapi/devmate.openapi.json` (projects, decisions, questions, threads,
-> streaming chat runs, voices, reading sessions, diagnostics) still has no
-> server implementation, so MSW mocks remain necessary for the rest of the UI.
-> See the root README's "Running against the real backend" section for how to
-> point this app at it.
+> **Update (2026-09-02):** the real DevMate backend (sibling repo `../Cortana`,
+> `devmate serve`) now covers far more than `/health`/`/status`/`/chat`: it
+> implements `/projects` (register + scan, auto-initializing the target repo),
+> `/projects/{id}/commits`, `/files` + `/files/diff`, `/decisions`, `/questions`,
+> `/threads`, `/projects/{id}/chat/runs` with a real `/runs/{id}/events` SSE
+> stream, and `/providers` (list) — see its `src/devmate/api/app.py`. `src/mocks/
+handlers.ts` is split into `handlers` (that already-real surface, gated by
+> `VITE_ENABLE_MOCKS`) and `stubHandlers` (still no backend: `diagnostics`,
+> per-provider detail, provider/speech settings `PUT`s, `speech/*`,
+> `reading-sessions/*` — always registered in `src/main.tsx` regardless of the
+> flag, so those screens keep working instead of 404ing). `.env.development.local`
+> sets `VITE_ENABLE_MOCKS=false` by default now that the bulk of the app talks to
+> the real backend. See the root README's "Running against the real backend"
+> section for how to start it.
 
 ## 1. Repository state at the start of this work
 

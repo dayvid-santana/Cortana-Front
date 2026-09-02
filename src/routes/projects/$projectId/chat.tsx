@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PanelRightOpen } from "lucide-react";
+import { Mic, MicOff, PanelRightOpen } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from "react-resizable-panels";
 
@@ -18,7 +18,9 @@ import { useChatRun } from "@/features/chat/hooks/use-chat-run";
 import { useThreadMessages, useThreads } from "@/features/chat/hooks/use-thread-messages";
 import { useProject } from "@/features/projects/hooks/use-project";
 import { useProviders } from "@/features/providers/hooks/use-providers";
+import { useSpeechSynthesis } from "@/features/voice/hooks/use-speech-synthesis";
 import { toDisplayProblem } from "@/lib/api/errors";
+import { cn } from "@/lib/utils/cn";
 import { useUiPreferencesStore } from "@/stores/ui-preferences-store";
 
 export const Route = createFileRoute("/projects/$projectId/chat")({
@@ -35,6 +37,11 @@ function ChatPage() {
 
   const contextPanelOpen = useUiPreferencesStore((state) => state.contextPanelOpen);
   const setContextPanelOpen = useUiPreferencesStore((state) => state.setContextPanelOpen);
+  const voiceModeEnabled = useUiPreferencesStore((state) => state.voiceModeEnabled);
+  const setVoiceModeEnabled = useUiPreferencesStore((state) => state.setVoiceModeEnabled);
+  const voiceAutoSend = useUiPreferencesStore((state) => state.voiceAutoSend);
+  const voiceLanguage = useUiPreferencesStore((state) => state.voiceLanguage);
+  const speech = useSpeechSynthesis({ lang: voiceLanguage });
 
   const threadsQuery = useThreads(projectId, commitHash);
   const resolvedThreadId = search.thread ?? threadsQuery.data?.items[0]?.id;
@@ -61,6 +68,16 @@ function ChatPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
   }, [messagesQuery.data, chatRun.runState.transcript, chatRun.optimisticMessages]);
+
+  const spokenRunIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!voiceModeEnabled) return;
+    const { status, runId, finalMessage } = chatRun.runState;
+    if (status !== "completed" || !finalMessage || runId === spokenRunIdRef.current) return;
+    spokenRunIdRef.current = runId;
+    speech.speak(finalMessage.content);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceModeEnabled, chatRun.runState.status, chatRun.runState.finalMessage]);
 
   if (project.status === "pending") {
     return (
@@ -105,16 +122,39 @@ function ChatPage() {
             scope={search.scope}
             onChange={(scope) => void navigate({ search: (prev) => ({ ...prev, scope }) })}
           />
-          {!contextPanelOpen ? (
+          <div className="flex items-center gap-1">
             <button
               type="button"
-              onClick={() => setContextPanelOpen(true)}
-              aria-label="Open context panel"
-              className="text-muted-foreground hover:bg-surface-muted hover:text-foreground inline-flex h-7 w-7 items-center justify-center rounded-sm"
+              onClick={() => {
+                if (voiceModeEnabled) speech.cancel();
+                setVoiceModeEnabled(!voiceModeEnabled);
+              }}
+              aria-pressed={voiceModeEnabled}
+              aria-label={voiceModeEnabled ? "Turn voice mode off" : "Turn voice mode on"}
+              className={cn(
+                "inline-flex h-7 w-7 items-center justify-center rounded-sm",
+                voiceModeEnabled
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:bg-surface-muted hover:text-foreground",
+              )}
             >
-              <PanelRightOpen size={15} aria-hidden="true" />
+              {voiceModeEnabled ? (
+                <Mic size={15} aria-hidden="true" />
+              ) : (
+                <MicOff size={15} aria-hidden="true" />
+              )}
             </button>
-          ) : null}
+            {!contextPanelOpen ? (
+              <button
+                type="button"
+                onClick={() => setContextPanelOpen(true)}
+                aria-label="Open context panel"
+                className="text-muted-foreground hover:bg-surface-muted hover:text-foreground inline-flex h-7 w-7 items-center justify-center rounded-sm"
+              >
+                <PanelRightOpen size={15} aria-hidden="true" />
+              </button>
+            ) : null}
+          </div>
         </div>
 
         <div className="min-h-0 flex-1 overflow-auto px-3 py-3">
@@ -166,6 +206,9 @@ function ChatPage() {
           isRunning={isRunning}
           onSend={(text) => void chatRun.send(text)}
           onCancel={chatRun.cancel}
+          voiceEnabled={voiceModeEnabled}
+          voiceLanguage={voiceLanguage}
+          voiceAutoSend={voiceAutoSend}
         />
       </Panel>
 

@@ -1,34 +1,46 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   getCortanaAgents,
   getCortanaHealth,
   getCortanaSession,
+  getJob,
   postAgentAsk,
   postAgentContext,
   postAgentDebug,
   postAgentReview,
-  postAgentTask,
   postAgentTest,
+  postArchitectureApproval,
   postGitCommitPlan,
+  postJobCancel,
+  postJobCleanup,
+  postJobResume,
+  postTaskPlan,
+  postTaskPlanStart,
 } from "@/lib/api/cortana/client";
 import type {
   AgentAskRequest,
   AgentContextRequest,
   AgentDebugRequest,
+  AgentJob,
   AgentReviewRequest,
-  AgentTaskRequest,
   AgentTestRequest,
+  ArchitectureApprovalRequest,
   GitCommitPlanRequest,
+  JobStartRequest,
+  TaskPlanRequest,
 } from "@/lib/api/cortana/types";
+import { ACTIVE_JOB_STATUSES } from "@/lib/api/cortana/types";
 
 export const cortanaKeys = {
   health: ["cortana", "health"] as const,
   session: ["cortana", "session"] as const,
   agents: ["cortana", "agents"] as const,
+  job: (jobId: string) => ["cortana", "job", jobId] as const,
 };
 
 const HEALTH_POLL_INTERVAL_MS = 15_000;
+const JOB_POLL_INTERVAL_MS = 2_000;
 
 export function useCortanaHealth() {
   return useQuery({
@@ -95,8 +107,78 @@ export function useGitCommitPlan() {
   });
 }
 
-export function useAgentTask() {
+// Task execution: plan -> optional architecture approval -> start -> poll job.
+// See docs/orchestration.md in dev-agent — POST /agent/task is deprecated and
+// always rejected, so this is the only working path for a mutating task.
+
+export function useCreateTaskPlan() {
   return useMutation({
-    mutationFn: (body: AgentTaskRequest) => postAgentTask(body),
+    mutationFn: (body: TaskPlanRequest) => postTaskPlan(body),
+  });
+}
+
+export function useApproveArchitecture() {
+  return useMutation({
+    mutationFn: ({ planId, ...body }: ArchitectureApprovalRequest & { planId: string }) =>
+      postArchitectureApproval(planId, body),
+  });
+}
+
+export function useStartTaskPlan() {
+  return useMutation({
+    mutationFn: ({ planId, ...body }: JobStartRequest & { planId: string }) =>
+      postTaskPlanStart(planId, body),
+  });
+}
+
+/** Polls GET /assistant/jobs/{id} until the job leaves queued/running. */
+export function useJob(jobId: string | undefined) {
+  return useQuery({
+    queryKey: cortanaKeys.job(jobId ?? ""),
+    queryFn: () => getJob(jobId as string),
+    enabled: jobId !== undefined,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status !== undefined && !ACTIVE_JOB_STATUSES.has(status)
+        ? false
+        : JOB_POLL_INTERVAL_MS;
+    },
+    retry: 1,
+  });
+}
+
+/**
+ * cancel/resume/cleanup all return the job's new state directly — write it into the
+ * useJob cache immediately rather than waiting for the next poll. This matters most for
+ * resume and cleanup: both can fire from a non-active status (blocked, or any terminal
+ * status), where useJob's refetchInterval has already turned itself off, so without this
+ * the UI would keep showing the stale pre-mutation state until an unrelated refetch.
+ */
+function useJobCacheWriter() {
+  const queryClient = useQueryClient();
+  return (job: AgentJob) => queryClient.setQueryData(cortanaKeys.job(job.id), job);
+}
+
+export function useCancelJob() {
+  const writeJobCache = useJobCacheWriter();
+  return useMutation({
+    mutationFn: (jobId: string) => postJobCancel(jobId),
+    onSuccess: writeJobCache,
+  });
+}
+
+export function useResumeJob() {
+  const writeJobCache = useJobCacheWriter();
+  return useMutation({
+    mutationFn: (jobId: string) => postJobResume(jobId),
+    onSuccess: writeJobCache,
+  });
+}
+
+export function useCleanupJob() {
+  const writeJobCache = useJobCacheWriter();
+  return useMutation({
+    mutationFn: (jobId: string) => postJobCleanup(jobId),
+    onSuccess: writeJobCache,
   });
 }

@@ -81,25 +81,27 @@ describe("AgentActionPanel", () => {
     expect(screen.getByRole("button", { name: /try again/i })).toBeInTheDocument();
   });
 
-  it("gates /agent/task behind an explicit confirmation before calling the API", async () => {
+  it("plans a task, then gates starting the job behind an explicit confirmation", async () => {
     const user = userEvent.setup();
     render(<AgentActionPanel agent={executorAgent} command="task" cwd="/repo" cwdValid />, {
       wrapper,
     });
 
     await user.type(screen.getByLabelText(/objective/i), "add a health check endpoint");
-    await user.click(screen.getByRole("button", { name: /run task/i }));
+    await user.click(screen.getByRole("button", { name: /plan task/i }));
+
+    await user.click(await screen.findByRole("button", { name: /^run task$/i }));
 
     const dialog = await screen.findByRole("dialog", { name: /confirm task/i });
     expect(dialog).toHaveTextContent("add a health check endpoint");
     expect(dialog).toHaveTextContent("/repo");
-    expect(dialog).toHaveTextContent(/create or alter files/i);
+    expect(dialog).toHaveTextContent(/worktree/i);
 
-    // Cancelling must not call the API.
+    // Cancelling must not start the job.
     await user.click(screen.getByRole("button", { name: /cancel/i }));
     expect(screen.queryByText(/task completed/i)).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /run task/i }));
+    await user.click(screen.getByRole("button", { name: /^run task$/i }));
     await user.click(await screen.findByRole("button", { name: /confirm & run/i }));
 
     expect(await screen.findByText(/task completed/i)).toBeInTheDocument();

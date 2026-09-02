@@ -19,6 +19,7 @@ dist-ssr
 
 # Registro local de projetos autorizados para a API DevMate.
 .devmate-web/
+dev-agent.yaml
 
 # Testing artifacts
 coverage

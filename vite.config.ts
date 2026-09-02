@@ -27,7 +27,7 @@ export default defineConfig(({ mode }) => {
       // document navigations through to the network, and serving on a
       // different loopback hostname can make those passthroughs fail.
       host: "localhost",
-      port: 5173,
+      port: 5174,
       proxy: {
         "/api": {
           target: env.DEVMATE_API_PROXY_TARGET ?? "http://127.0.0.1:8000",

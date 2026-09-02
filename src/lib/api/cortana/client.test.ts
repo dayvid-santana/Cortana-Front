@@ -5,10 +5,9 @@ import { isCortanaApiError, isCortanaNetworkError } from "@/lib/api/cortana/erro
 import {
   getCortanaAgents,
   getCortanaHealth,
-  postAgentTask,
   postAgentTest,
+  postTaskPlan,
 } from "@/lib/api/cortana/client";
-import { isArchitectureDecisionRequired } from "@/lib/api/cortana/types";
 import { CORTANA_BASE_URL } from "@/mocks/cortana-fixtures";
 import { server } from "@/test/msw-server";
 
@@ -24,21 +23,19 @@ describe("Cortana client", () => {
     expect(health.status).toBe("ok");
   });
 
-  it("returns a structured result for a normal /agent/task objective", async () => {
-    const result = await postAgentTask({ cwd: "/repo", objective: "add a health check" });
-    expect(isArchitectureDecisionRequired(result)).toBe(false);
-    expect(result.summary).toContain("add a health check");
+  it("creates a task plan for a normal objective, with no architecture decision pending", async () => {
+    const plan = await postTaskPlan({ cwd: "/repo", objective: "add a health check" });
+    expect(plan.architecture_decision_required).toBe(false);
+    expect(plan.objective).toBe("add a health check");
   });
 
-  it("surfaces architecture_decision_required without treating it as a normal result", async () => {
-    const result = await postAgentTask({
+  it("flags a structural objective's plan as requiring an architecture decision, unapproved", async () => {
+    const plan = await postTaskPlan({
       cwd: "/repo",
       objective: "pick an architecture for the queue",
     });
-    expect(isArchitectureDecisionRequired(result)).toBe(true);
-    if (isArchitectureDecisionRequired(result)) {
-      expect(result.options?.length).toBeGreaterThan(0);
-    }
+    expect(plan.architecture_decision_required).toBe(true);
+    expect(plan.architecture_approved).toBe(false);
   });
 
   it("wraps a non-2xx response in a CortanaApiError carrying the server's detail", async () => {

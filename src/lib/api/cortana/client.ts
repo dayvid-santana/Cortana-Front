@@ -4,14 +4,18 @@ import type {
   AgentAskRequest,
   AgentContextRequest,
   AgentDebugRequest,
+  AgentJob,
   AgentReviewRequest,
-  AgentTaskRequest,
   AgentTestRequest,
+  ArchitectureApprovalRequest,
   CortanaAgent,
   CortanaAgentResponse,
   CortanaHealth,
   CortanaSession,
   GitCommitPlanRequest,
+  JobStartRequest,
+  TaskPlan,
+  TaskPlanRequest,
 } from "@/lib/api/cortana/types";
 
 /**
@@ -22,9 +26,17 @@ import type {
  * developers running Cortana on a non-default local port.
  */
 const DEFAULT_BASE_URL = "http://127.0.0.1:8765";
+/** Cheap, no-Codex calls: health/session/agent-list, and job-status polling. */
 const DEFAULT_TIMEOUT_MS = 20_000;
-/** /agent/task can create or modify files and run considerably longer than a read-only call. */
-const TASK_TIMEOUT_MS = 300_000;
+/**
+ * Every read-only agent action (context/ask/review/test/debug/commit-plan) still runs a
+ * real Codex CLI invocation server-side — a review of a real diff has been measured at
+ * ~110s. 20s made every real call look like a timeout; this is generous enough for that
+ * without being as long as a full write pipeline.
+ */
+const AGENT_ACTION_TIMEOUT_MS = 180_000;
+/** Starting a task plan can create a worktree and run Codex end to end — the whole write pipeline. */
+const TASK_START_TIMEOUT_MS = 300_000;
 
 function resolveBaseUrl(): string {
   if (import.meta.env.DEV) {
@@ -149,52 +161,132 @@ export function postAgentContext(
   body: AgentContextRequest,
   options?: CortanaRequestOptions,
 ): Promise<CortanaAgentResponse> {
-  return request<CortanaAgentResponse>("/agent/context", { method: "POST", body }, options);
+  return request<CortanaAgentResponse>(
+    "/agent/context",
+    { method: "POST", body },
+    { timeoutMs: AGENT_ACTION_TIMEOUT_MS, ...options },
+  );
 }
 
 export function postAgentAsk(
   body: AgentAskRequest,
   options?: CortanaRequestOptions,
 ): Promise<CortanaAgentResponse> {
-  return request<CortanaAgentResponse>("/agent/ask", { method: "POST", body }, options);
+  return request<CortanaAgentResponse>(
+    "/agent/ask",
+    { method: "POST", body },
+    { timeoutMs: AGENT_ACTION_TIMEOUT_MS, ...options },
+  );
 }
 
 export function postAgentReview(
   body: AgentReviewRequest,
   options?: CortanaRequestOptions,
 ): Promise<CortanaAgentResponse> {
-  return request<CortanaAgentResponse>("/agent/review", { method: "POST", body }, options);
+  return request<CortanaAgentResponse>(
+    "/agent/review",
+    { method: "POST", body },
+    { timeoutMs: AGENT_ACTION_TIMEOUT_MS, ...options },
+  );
 }
 
 export function postAgentTest(
   body: AgentTestRequest,
   options?: CortanaRequestOptions,
 ): Promise<CortanaAgentResponse> {
-  return request<CortanaAgentResponse>("/agent/test", { method: "POST", body }, options);
+  return request<CortanaAgentResponse>(
+    "/agent/test",
+    { method: "POST", body },
+    { timeoutMs: AGENT_ACTION_TIMEOUT_MS, ...options },
+  );
 }
 
 export function postAgentDebug(
   body: AgentDebugRequest,
   options?: CortanaRequestOptions,
 ): Promise<CortanaAgentResponse> {
-  return request<CortanaAgentResponse>("/agent/debug", { method: "POST", body }, options);
+  return request<CortanaAgentResponse>(
+    "/agent/debug",
+    { method: "POST", body },
+    { timeoutMs: AGENT_ACTION_TIMEOUT_MS, ...options },
+  );
 }
 
 export function postGitCommitPlan(
   body: GitCommitPlanRequest,
   options?: CortanaRequestOptions,
 ): Promise<CortanaAgentResponse> {
-  return request<CortanaAgentResponse>("/git/commit-plan", { method: "POST", body }, options);
+  return request<CortanaAgentResponse>(
+    "/git/commit-plan",
+    { method: "POST", body },
+    { timeoutMs: AGENT_ACTION_TIMEOUT_MS, ...options },
+  );
+}
+
+/**
+ * Task execution is a plan → (optional architecture approval) → start → poll job flow.
+ * POST /agent/task is deprecated and always rejected by Cortana — never call it.
+ */
+export function postTaskPlan(
+  body: TaskPlanRequest,
+  options?: CortanaRequestOptions,
+): Promise<TaskPlan> {
+  return request<TaskPlan>("/assistant/task-plans", { method: "POST", body }, options);
+}
+
+export function postArchitectureApproval(
+  planId: string,
+  body: ArchitectureApprovalRequest,
+  options?: CortanaRequestOptions,
+): Promise<TaskPlan> {
+  return request<TaskPlan>(
+    `/assistant/task-plans/${encodeURIComponent(planId)}/architecture-approval`,
+    { method: "POST", body },
+    options,
+  );
 }
 
 /** The only mutating, potentially file-altering action — always confirmed by the UI first. */
-export function postAgentTask(
-  body: AgentTaskRequest,
+export function postTaskPlanStart(
+  planId: string,
+  body: JobStartRequest,
   options?: CortanaRequestOptions,
-): Promise<CortanaAgentResponse> {
-  return request<CortanaAgentResponse>(
-    "/agent/task",
+): Promise<AgentJob> {
+  return request<AgentJob>(
+    `/assistant/task-plans/${encodeURIComponent(planId)}/start`,
     { method: "POST", body },
-    { timeoutMs: TASK_TIMEOUT_MS, ...options },
+    { timeoutMs: TASK_START_TIMEOUT_MS, ...options },
+  );
+}
+
+export function getJob(jobId: string, options?: CortanaRequestOptions): Promise<AgentJob> {
+  return request<AgentJob>(
+    `/assistant/jobs/${encodeURIComponent(jobId)}`,
+    { method: "GET" },
+    options,
+  );
+}
+
+export function postJobCancel(jobId: string, options?: CortanaRequestOptions): Promise<AgentJob> {
+  return request<AgentJob>(
+    `/assistant/jobs/${encodeURIComponent(jobId)}/cancel`,
+    { method: "POST", body: {} },
+    options,
+  );
+}
+
+export function postJobResume(jobId: string, options?: CortanaRequestOptions): Promise<AgentJob> {
+  return request<AgentJob>(
+    `/assistant/jobs/${encodeURIComponent(jobId)}/resume`,
+    { method: "POST", body: {} },
+    { timeoutMs: TASK_START_TIMEOUT_MS, ...options },
+  );
+}
+
+export function postJobCleanup(jobId: string, options?: CortanaRequestOptions): Promise<AgentJob> {
+  return request<AgentJob>(
+    `/assistant/jobs/${encodeURIComponent(jobId)}/cleanup`,
+    { method: "POST", body: { confirmed_cleanup: true } },
+    options,
   );
 }

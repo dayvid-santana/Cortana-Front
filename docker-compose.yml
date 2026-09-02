@@ -28,7 +28,7 @@ services:
     working_dir: /app
     command: npm run dev -- --host 0.0.0.0
     ports:
-      - "5173:5173"
+      - "5174:5174"
     environment:
       # ${VAR:-default} so `VITE_ENABLE_MOCKS=false docker compose ... up dev`
       # from the host shell actually overrides this — a literal "true" here

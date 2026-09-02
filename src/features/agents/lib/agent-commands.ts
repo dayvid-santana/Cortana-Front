@@ -16,20 +16,35 @@ const COMMAND_ALIASES: Record<string, KnownAgentCommand> = {
   test: "test",
   debug: "debug",
   task: "task",
+  commit: "commit-plan",
   "commit-plan": "commit-plan",
   commit_plan: "commit-plan",
   "git/commit-plan": "commit-plan",
 };
 
+/**
+ * GET /agents' `command` field is a full CLI usage string, e.g.
+ * `dev-agent debug "<problema>"`, `dev-agent review [--staged]`, or
+ * `dev-agent task "<objetivo>"` (the last one shared by every catalog
+ * component that only runs as part of the write pipeline, not standalone —
+ * see docs/agent-inventory.md in dev-agent). The verb is the first word
+ * after the `dev-agent ` prefix; everything after it is a placeholder
+ * argument or flag hint, never part of the command name itself.
+ */
+function extractVerb(command: string): string {
+  const withoutPrefix = command.trim().replace(/^dev-agent\s+/i, "");
+  return withoutPrefix.split(/\s+/)[0] ?? "";
+}
+
 export function resolveKnownCommand(command: string): KnownAgentCommand | undefined {
-  return COMMAND_ALIASES[command.trim().toLowerCase()];
+  return COMMAND_ALIASES[extractVerb(command).toLowerCase()];
 }
 
 export const COMMAND_LABELS: Record<KnownAgentCommand, string> = {
   context: "Gather context",
   ask: "Ask",
   review: "Review",
-  test: "Run tests",
+  test: "Tests",
   debug: "Debug",
   task: "Run task",
   "commit-plan": "Commit plan",

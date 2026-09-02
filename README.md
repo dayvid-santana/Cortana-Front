@@ -22,11 +22,15 @@ served same-origin in production.
 ## Agents (Cortana)
 
 The `/agents` screen talks directly to a separate local agent-runner service,
-Cortana, at `http://127.0.0.1:8765` — **not** through `/api/v1` and **not**
-mocked by MSW's browser interception of the app's own origin the way the rest
-of the UI is (MSW does still intercept it for dev/tests, since it matches on
-absolute URLs too — see `src/mocks/cortana-handlers.ts`). Cortana is a plain
-backend: it exposes `/health`, `/session`, `/agents`, and the fixed
+Cortana, at `http://127.0.0.1:8765` — **not** through `/api/v1`, and **never**
+through MSW in the running app, even with `VITE_ENABLE_MOCKS=true`: that flag
+only stands in for the DevMate backend, which doesn't exist yet. Cortana is
+real and already runs on its own, so the browser worker
+(`src/mocks/browser.ts`) intentionally excludes `src/mocks/cortana-handlers.ts`
+— those handlers are wired in only for the Vitest test server
+(`src/test/msw-server.ts`), so automated tests stay deterministic without
+faking your actual assistant's responses in dev. Cortana itself exposes
+`/health`, `/session`, `/agents`, and the fixed
 `/agent/{context,ask,review,test,debug,task}` and `/git/commit-plan` action
 routes; every user-facing concern (forms, the task confirmation modal,
 structured result rendering, error/timeout handling) lives in the frontend.
@@ -54,7 +58,7 @@ npm install
 npm run dev
 ```
 
-Opens on `http://127.0.0.1:5173`. There is no real backend yet, so
+Opens on `http://127.0.0.1:5174`. There is no real backend yet, so
 `npm run dev` runs against **MSW mocks** by default — see `.env.development`.
 Once a real backend exists, point `DEVMATE_API_PROXY_TARGET` at it and set
 `VITE_ENABLE_MOCKS=false` in a local, gitignored `.env.development.local`.
@@ -63,7 +67,7 @@ Once a real backend exists, point `DEVMATE_API_PROXY_TARGET` at it and set
 
 ```bash
 docker compose up -d web        # production build, served by nginx, http://localhost:8080
-docker compose --profile dev up dev   # hot-reload dev server instead, http://localhost:5173
+docker compose --profile dev up dev   # hot-reload dev server instead, http://localhost:5174
 ```
 
 `web` is self-contained (mocks baked into the build) — no other services

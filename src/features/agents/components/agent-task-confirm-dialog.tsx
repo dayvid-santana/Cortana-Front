@@ -13,10 +13,10 @@ interface AgentTaskConfirmDialogProps {
 }
 
 /**
- * The only gate before POST /agent/task. Clicking Confirm here IS the
- * explicit execution order the product spec requires — there is no separate
- * auto-skip path, since this is a form, not a chat where a user might
- * already have phrased an unambiguous order in free text.
+ * The only gate before POST /assistant/task-plans/{id}/start. Clicking
+ * Confirm here IS the explicit execution order the product spec requires —
+ * there is no separate auto-skip path, since this is a form, not a chat
+ * where a user might already have phrased an unambiguous order in free text.
  */
 export function AgentTaskConfirmDialog({
   open,
@@ -30,7 +30,7 @@ export function AgentTaskConfirmDialog({
     <DialogRoot open={open} onOpenChange={onOpenChange}>
       <DialogContent
         title="Confirm task"
-        description="This will call Cortana's task agent, which can create or modify files."
+        description="This creates an isolated branch and worktree, then runs Cortana's write agents in it."
       >
         <div className="flex flex-col gap-3">
           <div>
@@ -43,7 +43,10 @@ export function AgentTaskConfirmDialog({
           </div>
           <div className="border-warning/30 bg-warning/5 text-warning flex items-start gap-2 rounded-sm border p-2">
             <AlertTriangle size={14} aria-hidden="true" className="mt-0.5 shrink-0" />
-            <p className="text-[13px]">This action can create or alter files.</p>
+            <p className="text-[13px]">
+              Your current branch is never touched — this runs on a new `dev-agent/&lt;id&gt;`
+              branch in a sibling worktree, which you can clean up afterwards.
+            </p>
           </div>
           <div className="mt-1 flex justify-end gap-2">
             <Button

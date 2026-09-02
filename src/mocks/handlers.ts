@@ -18,7 +18,6 @@ import {
   voices,
 } from "@/mocks/fixtures";
 import { buildRunEventScript, createSseStream } from "@/mocks/streaming";
-import { cortanaHandlers } from "@/mocks/cortana-handlers";
 
 type Project = components["schemas"]["Project"];
 type Message = components["schemas"]["Message"];
@@ -118,10 +117,16 @@ function splitIntoSegments(text: string): { heading?: string | undefined; text: 
   });
 }
 
+// `handlers` covers everything the real DevMate backend (Cortana/devmate serve) already
+// implements: health, projects, commits, files, decisions, questions, threads, chat
+// runs + SSE, and the providers list. It's only registered when VITE_ENABLE_MOCKS is
+// true. `stubHandlers` below covers what still has no server implementation
+// (diagnostics, speech/voices, reading-sessions, provider detail/settings) — those are
+// always registered in src/main.tsx, mocks or not, so those screens still work instead
+// of hitting a real 404. See docs/web-api-gaps.md.
 export const handlers = [
-  // ---- Health / diagnostics ------------------------------------------------
+  // ---- Health -----------------------------------------------------------------
   http.get(`${API}/health`, () => HttpResponse.json({ status: "ok" })),
-  http.get(`${API}/diagnostics`, () => HttpResponse.json(diagnostics)),
 
   // ---- Projects -------------------------------------------------------------
   http.get(`${API}/projects`, () => HttpResponse.json({ items: projectsState })),
@@ -444,8 +449,15 @@ export const handlers = [
     return HttpResponse.json({ id: runId, threadId: run.threadId, status: "cancelled" });
   }),
 
-  // ---- Providers --------------------------------------------------------------------------
+  // ---- Providers (list only — the real backend has no per-provider detail route) -----------
   http.get(`${API}/providers`, () => HttpResponse.json({ items: providers })),
+];
+
+// Everything below has no real backend implementation yet (see docs/web-api-gaps.md) and
+// is registered unconditionally in src/main.tsx, independent of VITE_ENABLE_MOCKS.
+export const stubHandlers = [
+  http.get(`${API}/diagnostics`, () => HttpResponse.json(diagnostics)),
+
   http.get(`${API}/providers/:providerName`, ({ params }) => {
     const found = providers.find((provider) => provider.name === params.providerName);
     return found ? HttpResponse.json(found) : notFound("Provider not found");
@@ -549,7 +561,4 @@ export const handlers = [
       headers: { "Content-Type": "audio/wav" },
     });
   }),
-
-  // ---- Cortana (local agent-runner service, separate origin) --------------------------------
-  ...cortanaHandlers,
 ];
