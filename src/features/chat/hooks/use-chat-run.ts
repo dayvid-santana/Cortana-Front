@@ -75,7 +75,14 @@ export function useChatRun(
               closeSubscription();
             }
           },
-          onError: (message) => {
+          onError: (message, kind) => {
+            // "reconnecting" means EventSource is retrying this same subscription on
+            // its own (see sse-run-event-client.ts) — closing here would kill that
+            // retry and turn a transient blip into a guaranteed failure on every run.
+            if (kind === "reconnecting") {
+              dispatch({ type: "client.reconnecting" });
+              return;
+            }
             dispatch({ type: "client.connection_lost", message });
             closeSubscription();
           },

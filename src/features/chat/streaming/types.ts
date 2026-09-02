@@ -18,7 +18,13 @@ export type RunEvent =
 export interface RunEventHandlers {
   onEvent: (event: RunEvent) => void;
   onOpen?: () => void;
-  onError?: (message: string) => void;
+  /**
+   * "reconnecting" is transient — the transport (EventSource) is retrying the same
+   * subscription on its own; the caller must not tear it down. "lost" means the
+   * transport has given up and the caller owns recovery (e.g. closing and surfacing
+   * a failure).
+   */
+  onError?: (message: string, kind: "reconnecting" | "lost") => void;
 }
 
 export interface RunEventSubscription {

@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import { createFakeRunEventClient } from "@/features/chat/streaming/fake-run-event-client";
 import { useChatRun } from "@/features/chat/hooks/use-chat-run";
-import type { RunEvent } from "@/features/chat/streaming/types";
+import type { RunEvent, RunEventClient, RunEventHandlers } from "@/features/chat/streaming/types";
 
 function wrapper({ children }: { children: ReactNode }) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -106,5 +106,70 @@ describe("useChatRun", () => {
 
     await new Promise((resolve) => setTimeout(resolve, 80));
     expect(result.current.runState.transcript).toBe(transcriptAtCancel);
+  });
+
+  it("does not close the subscription on a transient 'reconnecting' error — the run keeps streaming once EventSource recovers on its own", async () => {
+    let closed = false;
+    let capturedHandlers!: RunEventHandlers;
+    const client: RunEventClient = {
+      subscribe(_runId, handlers) {
+        capturedHandlers = handlers;
+        handlers.onOpen?.();
+        return { close: () => (closed = true) };
+      },
+    };
+
+    const { result } = renderHook(
+      () =>
+        useChatRun(
+          "proj_acme-api",
+          { threadId: "thread_1", commitHash: "a17d3e1", scope: "docs" },
+          client,
+        ),
+      { wrapper },
+    );
+
+    await act(async () => {
+      await result.current.send("What changed?");
+    });
+
+    act(() => capturedHandlers.onError?.("Reconnecting…", "reconnecting"));
+    expect(closed).toBe(false);
+    expect(result.current.runState.status).toBe("connecting");
+
+    // EventSource recovered on its own and events keep flowing on the same subscription.
+    act(() => capturedHandlers.onEvent(completionScript[1] as RunEvent));
+    expect(result.current.runState.status).toBe("streaming");
+    expect(result.current.runState.transcript).toBe("Hello ");
+  });
+
+  it("closes the subscription and marks the run 'failed' when the transport truly gives up", async () => {
+    let closed = false;
+    let capturedHandlers!: RunEventHandlers;
+    const client: RunEventClient = {
+      subscribe(_runId, handlers) {
+        capturedHandlers = handlers;
+        handlers.onOpen?.();
+        return { close: () => (closed = true) };
+      },
+    };
+
+    const { result } = renderHook(
+      () =>
+        useChatRun(
+          "proj_acme-api",
+          { threadId: "thread_1", commitHash: "a17d3e1", scope: "docs" },
+          client,
+        ),
+      { wrapper },
+    );
+
+    await act(async () => {
+      await result.current.send("What changed?");
+    });
+
+    act(() => capturedHandlers.onError?.("Stream connection lost.", "lost"));
+    expect(closed).toBe(true);
+    expect(result.current.runState.status).toBe("failed");
   });
 });

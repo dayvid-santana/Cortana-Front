@@ -7,6 +7,21 @@ import type {
 
 const apiBaseUrl = import.meta.env.VITE_DEVMATE_API_BASE_URL ?? "/api/v1";
 
+// The backend sends every real event with an explicit `event: <type>` field (see
+// devmate's stream_run_events). EventSource's generic "message" event only fires for
+// frames with NO event field at all (the SSE spec's default "message" type) — so
+// listening only on "message", as this client used to, silently never received any
+// real content; each of these needs its own addEventListener.
+const EVENT_TYPES = [
+  "run.started",
+  "assistant.delta",
+  "source.reference",
+  "tool.started",
+  "tool.completed",
+  "run.completed",
+  "run.failed",
+] as const satisfies readonly RunEvent["type"][];
+
 function isRunEvent(value: unknown): value is RunEvent {
   return (
     typeof value === "object" &&
@@ -30,7 +45,7 @@ class SseRunEventClient implements RunEventClient {
       handlers.onOpen?.();
     });
 
-    source.addEventListener("message", (event: MessageEvent<string>) => {
+    const handleTypedEvent = (event: MessageEvent<string>) => {
       let parsed: unknown;
       try {
         parsed = JSON.parse(event.data);
@@ -40,14 +55,18 @@ class SseRunEventClient implements RunEventClient {
       if (isRunEvent(parsed)) {
         handlers.onEvent(parsed);
       }
-    });
+    };
+    for (const type of EVENT_TYPES) {
+      source.addEventListener(type, handleTypedEvent);
+    }
 
     source.addEventListener("error", () => {
       if (source.readyState === EventSource.CONNECTING) {
-        handlers.onError?.("Reconnecting…");
+        // EventSource is retrying this same subscription on its own — not a failure.
+        handlers.onError?.("Reconnecting…", "reconnecting");
         return;
       }
-      handlers.onError?.("Stream connection lost.");
+      handlers.onError?.("Stream connection lost.", "lost");
     });
 
     return {
