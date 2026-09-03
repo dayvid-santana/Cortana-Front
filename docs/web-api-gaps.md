@@ -17,6 +17,28 @@ handlers.ts` is split into `handlers` (that already-real surface, gated by
 > sets `VITE_ENABLE_MOCKS=false` by default now that the bulk of the app talks to
 > the real backend. See the root README's "Running against the real backend"
 > section for how to start it.
+>
+> **Update (2026-09-03): no more mocks in the running app.** The Cortana backend
+> now implements every remaining route too — `GET /diagnostics` (backed by the
+> CLI's `doctor()`), `GET/PUT /providers` and `/providers/{name}` (backed by the
+> real `ProviderRegistry`, plus a new `[provider.task_routing]` config section),
+> `GET /speech/providers`, `GET /speech/voices`, `POST /speech/voices/preview` +
+> its audio endpoint, `PUT /projects/{id}/settings/speech`, and the whole
+> `/projects/{id}/reading-sessions` + per-segment audio flow (verbatim/narrate
+> text comes from `MarkdownNarrator`; `explain` mode calls the project's actual
+> LLM provider per segment). See `src/devmate/api/app.py` and the new
+> `src/devmate/application/reading_session_service.py` in `../Cortana`.
+> `stubHandlers` in `src/mocks/handlers.ts` still exists — Vitest/Playwright keep
+> using MSW for deterministic tests — but `src/main.tsx` no longer force-starts
+> it: with `VITE_ENABLE_MOCKS=false` the running app now hits the real backend
+> for 100% of the API, no silent stub fallback for any screen. Two real
+> constraints worth knowing: the default speech provider (`system`) speaks
+> directly on the host OS and cannot return audio bytes over HTTP, so voice
+> preview and reading-session audio need `speech.provider = "openai"` (with
+> `OPENAI_API_KEY` set) to actually play in the browser; and `explain` mode
+> calls whatever LLM provider is configured as the project default (`mock` by
+> default — deterministic but not a real explanation — set a real provider via
+> `PUT /projects/{id}/settings/providers` for a genuine one).
 
 ## 1. Repository state at the start of this work
 
@@ -127,10 +149,12 @@ mocked with a generated sine-tone WAV in `src/mocks/audio.ts`). Then flip
 - **Playwright covers Chromium only** (`playwright.config.ts`), per the
   task's local-first/desktop-first framing rather than a full cross-browser
   matrix.
-- **No real LLM/TTS provider is wired up** — `anthropic`/`ollama`/`openai`
-  and `openai-tts`/`piper-local` are fixture data illustrating the
-  local-vs-remote / configured-vs-missing-credentials states the UI must
-  render, not live integrations.
+- ~~No real LLM/TTS provider is wired up~~ — fixed 2026-09-03. `/providers` now
+  reflects the backend's actual 4 LLM providers (`mock`/`codex`/`openai`/
+  `openai_compatible`) and `/speech/providers` its actual 2 speech providers
+  (`system`/`openai`), each with live `availability`/`authConfigured`. Whether
+  a given provider shows "available" still depends on real local state (Codex
+  CLI login, `OPENAI_API_KEY`), same as the CLI's own `devmate doctor`.
 
 ## 7. Notable bugs this build's own testing caught and fixed
 

@@ -5,15 +5,14 @@ import { App } from "@/app/app";
 import "@/styles/globals.css";
 
 async function enableMocksIfConfigured(): Promise<void> {
-  const mocksEnabled = import.meta.env.VITE_ENABLE_MOCKS === "true";
-  // A handful of screens (diagnostics, speech/voices, reading-sessions — see
-  // docs/web-api-gaps.md) still have no real backend even once the rest of the
-  // DevMate API is live. The stub worker for just those stays on regardless of
-  // VITE_ENABLE_MOCKS, so those screens keep working instead of hitting a 404
-  // from the real backend; the full worker (real-backend-covered handlers
-  // included) is only used while mocks are on.
-  const { worker, stubWorker } = await import("@/mocks/browser");
-  await (mocksEnabled ? worker : stubWorker).start({
+  // The real DevMate backend now covers the full API (see docs/web-api-gaps.md),
+  // so the running app never needs a stub fallback: VITE_ENABLE_MOCKS is purely a
+  // dev/test convenience for working without a backend at all. When it's off,
+  // every request goes to the real backend — no silent mock fallback for any
+  // screen, diagnostics/speech/reading-sessions included.
+  if (import.meta.env.VITE_ENABLE_MOCKS !== "true") return;
+  const { worker } = await import("@/mocks/browser");
+  await worker.start({
     // "bypass" let unmocked requests fall through to Vite's /api proxy,
     // which has no real backend to receive them — so a missing handler
     // surfaced as an opaque ECONNREFUSED in the terminal instead of a
