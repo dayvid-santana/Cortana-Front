@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { MarkdownContent } from "@/components/content/markdown-content";
 import { CitationList } from "@/features/chat/components/citation-list";
+import { EditProposalCard } from "@/features/chat/components/edit-proposal-card";
 import type { components } from "@/lib/api/schema";
 import { formatAbsoluteTime, formatRelativeTime } from "@/lib/formatting/date";
 import { cn } from "@/lib/utils/cn";
@@ -54,8 +55,14 @@ export function AssistantMessage({ projectId, message }: { projectId: string; me
         ) : null}
       </div>
 
+      {message.editProposal ? (
+        <EditProposalCard projectId={projectId} proposal={message.editProposal} />
+      ) : null}
+
       <div className="text-muted-foreground flex items-center gap-2 text-[11px]">
-        <Badge variant={message.scope === "docs" ? "docs" : "code"}>{message.scope}</Badge>
+        <Badge variant={message.scope === "docs" ? "docs" : message.scope === "edit" ? "edit" : "code"}>
+          {message.scope}
+        </Badge>
         <time dateTime={message.createdAt} title={formatAbsoluteTime(message.createdAt)}>
           {formatRelativeTime(message.createdAt)}
         </time>

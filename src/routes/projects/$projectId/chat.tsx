@@ -7,6 +7,7 @@ import { ErrorState } from "@/components/feedback/error-state";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { LoadingState } from "@/components/feedback/loading-state";
 import { ContextPanel } from "@/components/layout/context-panel";
+import { applyEditProposal } from "@/features/chat/api/queries";
 import { ChatComposer } from "@/features/chat/components/chat-composer";
 import { ChatContextPanel } from "@/features/chat/components/chat-context-panel";
 import { ChatEmptyState } from "@/features/chat/components/chat-empty-state";
@@ -88,6 +89,32 @@ function ChatPage() {
 
   const runIsActive =
     chatRun.runState.status === "connecting" || chatRun.runState.status === "streaming";
+
+  // Uma proposta de edição pendente já foi confirmada/descartada por voz nesta
+  // sessão? Evita aplicar duas vezes se a pessoa repetir "Diana, sim".
+  const resolvedProposalIdsRef = useRef<Set<string>>(new Set());
+  const CONFIRM_PATTERN = /\b(sim|aplica|aplicar|confirmo|confirma|pode aplicar|ok)\b/i;
+  const DISCARD_PATTERN = /\b(não|nao|cancela|cancelar|descarta|descartar|deixa)\b/i;
+
+  const handleVoiceCommand = (command: string) => {
+    const proposal = chatRun.runState.finalMessage?.editProposal;
+    if (proposal && !proposal.applied && !resolvedProposalIdsRef.current.has(proposal.id)) {
+      if (CONFIRM_PATTERN.test(command)) {
+        resolvedProposalIdsRef.current.add(proposal.id);
+        void applyEditProposal(projectId, proposal.id)
+          .then(() => speech.speak("Aplicado."))
+          .catch(() => speech.speak("Não consegui aplicar a alteração."));
+        return;
+      }
+      if (DISCARD_PATTERN.test(command)) {
+        resolvedProposalIdsRef.current.add(proposal.id);
+        void speech.speak("Descartado. Nada foi escrito.");
+        return;
+      }
+    }
+    void chatRun.send(command);
+  };
+
   const wakeWord = useWakeWordListening({
     lang: voiceLanguage,
     // Ligar o microfone na interface ativa a escuta contínua por "Diana"; pausa
@@ -95,7 +122,7 @@ function ChatPage() {
     // reagir à própria voz dela nem empilhar comandos em cima de uma rodada ativa.
     enabled: voiceModeEnabled,
     paused: speech.isSpeaking || runIsActive,
-    onCommand: (command) => void chatRun.send(command),
+    onCommand: handleVoiceCommand,
   });
 
   if (project.status === "pending") {

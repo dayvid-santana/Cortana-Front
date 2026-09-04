@@ -11,6 +11,7 @@ const badgeVariants = cva(
         default: "border-border bg-surface-muted text-foreground",
         docs: "border-docs-scope/30 bg-docs-scope/10 text-docs-scope",
         code: "border-code-scope/30 bg-code-scope/10 text-code-scope",
+        edit: "border-edit-scope/30 bg-edit-scope/10 text-edit-scope",
         success: "border-success/30 bg-success/10 text-success",
         warning: "border-warning/30 bg-warning/10 text-warning",
         danger: "border-danger/30 bg-danger/10 text-danger",

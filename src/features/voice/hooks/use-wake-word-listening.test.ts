@@ -114,7 +114,13 @@ describe("useWakeWordListening", () => {
     window.SpeechRecognition = FakeSpeechRecognition as unknown as SpeechRecognitionConstructor;
     const onCommand = vi.fn();
     renderHook(() =>
-      useWakeWordListening({ lang: "pt-BR", enabled: true, paused: false, onCommand }),
+      useWakeWordListening({
+        lang: "pt-BR",
+        wakeWord: "diana",
+        enabled: true,
+        paused: false,
+        onCommand,
+      }),
     );
 
     const instance = FakeSpeechRecognition.instances.at(-1);

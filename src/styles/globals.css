@@ -25,6 +25,7 @@
 
   --color-docs-scope: var(--docs-scope);
   --color-code-scope: var(--code-scope);
+  --color-edit-scope: var(--edit-scope);
 
   --color-selected-line: var(--selected-line);
   --color-diff-added: var(--diff-added);

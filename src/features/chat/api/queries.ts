@@ -24,7 +24,12 @@ export async function fetchThreadMessages(projectId: string, threadId: string) {
 
 export async function createChatRun(
   projectId: string,
-  input: { threadId?: string; commitHash: string; scope: "docs" | "code"; message: string },
+  input: {
+    threadId?: string;
+    commitHash: string;
+    scope: "docs" | "code" | "edit";
+    message: string;
+  },
 ) {
   return unwrap(
     apiClient.POST("/projects/{projectId}/chat/runs", {
@@ -36,4 +41,14 @@ export async function createChatRun(
 
 export async function cancelChatRun(runId: string) {
   return unwrap(apiClient.POST("/runs/{runId}/cancel", { params: { path: { runId } } }));
+}
+
+/** Único ponto que efetivamente grava em disco uma edição vinda do chat — só chamado
+ * depois que a pessoa usuária confirma explicitamente (botão ou voz). */
+export async function applyEditProposal(projectId: string, proposalId: string) {
+  return unwrap(
+    apiClient.POST("/projects/{projectId}/edit-proposals/{proposalId}/apply", {
+      params: { path: { projectId, proposalId } },
+    }),
+  );
 }

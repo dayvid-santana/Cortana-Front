@@ -294,6 +294,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/{projectId}/edit-proposals/{proposalId}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Write a previously proposed edit to disk, after explicit confirmation */
+        post: operations["applyEditProposal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/runs/{runId}": {
         parameters: {
             query?: never;
@@ -731,7 +748,7 @@ export interface components {
             resolution?: string;
         };
         /** @enum {string} */
-        ChatScope: "docs" | "code";
+        ChatScope: "docs" | "code" | "edit";
         Thread: {
             id: string;
             projectId: string;
@@ -788,6 +805,18 @@ export interface components {
             questionsDetected?: string[];
             durationMs?: number;
             status: components["schemas"]["MessageStatus"];
+            editProposal?: components["schemas"]["EditProposal"];
+        };
+        EditProposalFile: {
+            path: string;
+            diff: string;
+        };
+        EditProposal: {
+            id: string;
+            applied: boolean;
+            /** @enum {string} */
+            engine: "dev_agent" | "llm";
+            files: components["schemas"]["EditProposalFile"][];
         };
         MessagePage: {
             items: components["schemas"]["Message"][];
@@ -1366,6 +1395,30 @@ export interface operations {
                 };
             };
             422: components["responses"]["Problem"];
+        };
+    };
+    applyEditProposal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: components["parameters"]["ProjectId"];
+                proposalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EditProposal"];
+                };
+            };
+            400: components["responses"]["Problem"];
         };
     };
     getRun: {

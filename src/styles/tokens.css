@@ -34,6 +34,7 @@
 
   --docs-scope: hsl(217 91% 45%);
   --code-scope: hsl(271 65% 47%);
+  --edit-scope: hsl(28 85% 40%);
 
   --selected-line: hsl(48 96% 62%);
   --diff-added: hsl(152 60% 24%);
@@ -73,6 +74,7 @@
 
     --docs-scope: hsl(217 91% 68%);
     --code-scope: hsl(271 70% 72%);
+    --edit-scope: hsl(28 85% 65%);
 
     --selected-line: hsl(48 90% 45%);
     --diff-added: hsl(152 55% 55%);
@@ -109,6 +111,7 @@
 
   --docs-scope: hsl(217 91% 68%);
   --code-scope: hsl(271 70% 72%);
+  --edit-scope: hsl(28 85% 65%);
 
   --selected-line: hsl(48 90% 45%);
   --diff-added: hsl(152 55% 55%);

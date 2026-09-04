@@ -416,6 +416,25 @@
         }
       }
     },
+    "/projects/{projectId}/edit-proposals/{proposalId}/apply": {
+      "post": {
+        "operationId": "applyEditProposal",
+        "summary": "Write a previously proposed edit to disk, after explicit confirmation",
+        "parameters": [
+          { "$ref": "#/components/parameters/ProjectId" },
+          { "name": "proposalId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/EditProposal" } }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
     "/runs/{runId}": {
       "get": {
         "operationId": "getRun",
@@ -991,7 +1010,7 @@
           "resolution": { "type": "string" }
         }
       },
-      "ChatScope": { "type": "string", "enum": ["docs", "code"] },
+      "ChatScope": { "type": "string", "enum": ["docs", "code", "edit"] },
       "Thread": {
         "type": "object",
         "required": ["id", "projectId", "scope", "createdAt", "updatedAt", "messageCount"],
@@ -1062,7 +1081,26 @@
           "decisionsDetected": { "type": "array", "items": { "type": "string" } },
           "questionsDetected": { "type": "array", "items": { "type": "string" } },
           "durationMs": { "type": "integer" },
-          "status": { "$ref": "#/components/schemas/MessageStatus" }
+          "status": { "$ref": "#/components/schemas/MessageStatus" },
+          "editProposal": { "$ref": "#/components/schemas/EditProposal" }
+        }
+      },
+      "EditProposalFile": {
+        "type": "object",
+        "required": ["path", "diff"],
+        "properties": { "path": { "type": "string" }, "diff": { "type": "string" } }
+      },
+      "EditProposal": {
+        "type": "object",
+        "required": ["id", "applied", "engine", "files"],
+        "properties": {
+          "id": { "type": "string" },
+          "applied": { "type": "boolean" },
+          "engine": { "type": "string", "enum": ["dev_agent", "llm"] },
+          "files": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/EditProposalFile" }
+          }
         }
       },
       "MessagePage": {

@@ -41,7 +41,7 @@ export function extractCommandAfterWakeWord(transcript: string, wakeWord: string
  */
 export function useWakeWordListening({
   lang,
-  wakeWord = "diana",
+  wakeWord = "cortana",
   enabled,
   paused,
   onCommand,

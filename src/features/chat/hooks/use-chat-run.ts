@@ -18,7 +18,7 @@ export interface OptimisticMessage {
 interface UseChatRunOptions {
   threadId?: string;
   commitHash: string;
-  scope: "docs" | "code";
+  scope: "docs" | "code" | "edit";
 }
 
 export function useChatRun(

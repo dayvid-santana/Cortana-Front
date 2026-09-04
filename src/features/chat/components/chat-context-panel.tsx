@@ -14,7 +14,7 @@ interface ChatContextPanelProps {
   projectId: string;
   commitHash: string;
   branch?: string;
-  scope: "docs" | "code";
+  scope: "docs" | "code" | "edit";
   provider?: Provider;
 }
 
@@ -31,7 +31,8 @@ export function ChatContextPanel({
 
   const includedDocs =
     scope === "docs" || scope === "code" ? (commit.data?.changedDocPaths ?? []) : [];
-  const includedCode = scope === "code" ? (commit.data?.changedCodePaths ?? []) : [];
+  const includedCode =
+    scope === "code" || scope === "edit" ? (commit.data?.changedCodePaths ?? []) : [];
 
   return (
     <div className="flex flex-col gap-4 text-[13px]">
@@ -50,7 +51,9 @@ export function ChatContextPanel({
           ) : null}
           <dt className="text-muted-foreground">Scope</dt>
           <dd>
-            <Badge variant={scope === "docs" ? "docs" : "code"}>{scope}</Badge>
+            <Badge variant={scope === "docs" ? "docs" : scope === "edit" ? "edit" : "code"}>
+              {scope}
+            </Badge>
           </dd>
           {provider ? (
             <>
@@ -87,7 +90,7 @@ export function ChatContextPanel({
         </ul>
       </section>
 
-      {scope === "code" ? (
+      {scope === "code" || scope === "edit" ? (
         <section>
           <h3 className="text-muted-foreground text-[11px] font-semibold tracking-wide uppercase">
             Included code files ({includedCode.length})
