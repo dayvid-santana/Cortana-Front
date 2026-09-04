@@ -816,7 +816,7 @@ export interface components {
             id: string;
             applied: boolean;
             /** @enum {string} */
-            engine: "dev_agent" | "llm";
+            engine: "dev_agent" | "dev_agent_headers" | "llm";
             files: components["schemas"]["EditProposalFile"][];
         };
         MessagePage: {

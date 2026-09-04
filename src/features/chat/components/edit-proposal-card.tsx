@@ -89,7 +89,11 @@ export function EditProposalCard({
       <div className="border-edit-scope/30 bg-edit-scope/10 text-edit-scope flex items-center justify-between border-b px-2.5 py-1 text-[11px] font-medium">
         <span>
           Proposed change{proposal.files.length > 1 ? ` (${proposal.files.length} files)` : ""} ·{" "}
-          {proposal.engine === "dev_agent" ? "dev-agent" : "direct"}
+          {proposal.engine === "dev_agent_headers"
+            ? "dev-agent · headers"
+            : proposal.engine === "dev_agent"
+              ? "dev-agent"
+              : "direct"}
         </span>
       </div>
       <div className="divide-border divide-y">

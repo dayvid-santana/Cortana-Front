@@ -1097,7 +1097,7 @@
         "properties": {
           "id": { "type": "string" },
           "applied": { "type": "boolean" },
-          "engine": { "type": "string", "enum": ["dev_agent", "llm"] },
+          "engine": { "type": "string", "enum": ["dev_agent", "dev_agent_headers", "llm"] },
           "files": {
             "type": "array",
             "items": { "$ref": "#/components/schemas/EditProposalFile" }
