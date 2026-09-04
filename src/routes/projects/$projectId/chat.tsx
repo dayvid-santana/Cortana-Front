@@ -19,6 +19,7 @@ import { useThreadMessages, useThreads } from "@/features/chat/hooks/use-thread-
 import { useProject } from "@/features/projects/hooks/use-project";
 import { useProviders } from "@/features/providers/hooks/use-providers";
 import { useServerSpeech } from "@/features/speech/hooks/use-server-speech";
+import { useWakeWordListening } from "@/features/voice/hooks/use-wake-word-listening";
 import { toDisplayProblem } from "@/lib/api/errors";
 import { cn } from "@/lib/utils/cn";
 import { useUiPreferencesStore } from "@/stores/ui-preferences-store";
@@ -85,6 +86,18 @@ function ChatPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voiceModeEnabled, chatRun.runState.status, chatRun.runState.finalMessage]);
 
+  const runIsActive =
+    chatRun.runState.status === "connecting" || chatRun.runState.status === "streaming";
+  const wakeWord = useWakeWordListening({
+    lang: voiceLanguage,
+    // Ligar o microfone na interface ativa a escuta contínua por "Diana"; pausa
+    // enquanto a assistente está falando ou já processando um pedido, pra não
+    // reagir à própria voz dela nem empilhar comandos em cima de uma rodada ativa.
+    enabled: voiceModeEnabled,
+    paused: speech.isSpeaking || runIsActive,
+    onCommand: (command) => void chatRun.send(command),
+  });
+
   if (project.status === "pending") {
     return (
       <div className="p-4">
@@ -115,8 +128,7 @@ function ChatPage() {
     );
   }
 
-  const isRunning =
-    chatRun.runState.status === "connecting" || chatRun.runState.status === "streaming";
+  const isRunning = runIsActive;
   const showStreaming =
     chatRun.runState.status !== "completed" && chatRun.optimisticMessages.length > 0;
 
@@ -129,6 +141,11 @@ function ChatPage() {
             onChange={(scope) => void navigate({ search: (prev) => ({ ...prev, scope }) })}
           />
           <div className="flex items-center gap-1">
+            {voiceModeEnabled && wakeWord.isListening ? (
+              <span className="text-muted-foreground text-[11px]" role="status">
+                Listening for “Diana”…
+              </span>
+            ) : null}
             <button
               type="button"
               onClick={() => {
@@ -136,12 +153,22 @@ function ChatPage() {
                 setVoiceModeEnabled(!voiceModeEnabled);
               }}
               aria-pressed={voiceModeEnabled}
-              aria-label={voiceModeEnabled ? "Turn voice mode off" : "Turn voice mode on"}
+              title={
+                voiceModeEnabled
+                  ? 'Voice mode on — say "Diana" followed by your question'
+                  : "Turn voice mode on"
+              }
+              aria-label={
+                voiceModeEnabled
+                  ? 'Turn voice mode off (listening for "Diana")'
+                  : "Turn voice mode on"
+              }
               className={cn(
                 "inline-flex h-7 w-7 items-center justify-center rounded-sm",
                 voiceModeEnabled
                   ? "bg-accent text-accent-foreground"
                   : "text-muted-foreground hover:bg-surface-muted hover:text-foreground",
+                voiceModeEnabled && wakeWord.isListening && !speech.isSpeaking && "animate-pulse",
               )}
             >
               {voiceModeEnabled ? (
