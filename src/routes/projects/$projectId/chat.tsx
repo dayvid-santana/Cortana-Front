@@ -241,7 +241,14 @@ function ChatPage() {
                   createdAt={message.createdAt}
                 />
               ) : (
-                <AssistantMessage key={message.id} projectId={projectId} message={message} />
+                <AssistantMessage
+                  key={message.id}
+                  projectId={projectId}
+                  message={message}
+                  onSwitchToEditScope={() =>
+                    void navigate({ search: (prev) => ({ ...prev, scope: "edit" }) })
+                  }
+                />
               ),
             )}
 

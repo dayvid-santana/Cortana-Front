@@ -1,7 +1,8 @@
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Pencil } from "lucide-react";
 import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { MarkdownContent } from "@/components/content/markdown-content";
 import { CitationList } from "@/features/chat/components/citation-list";
 import { EditProposalCard } from "@/features/chat/components/edit-proposal-card";
@@ -40,7 +41,17 @@ export function UserMessage({ content, createdAt, pending }: UserMessageProps) {
   );
 }
 
-export function AssistantMessage({ projectId, message }: { projectId: string; message: Message }) {
+export function AssistantMessage({
+  projectId,
+  message,
+  onSwitchToEditScope,
+}: {
+  projectId: string;
+  message: Message;
+  /** Presente quando a mensagem foi gerada em Docs/Code mas parecia um pedido de
+   * alteração (ver `suggestedScope` no backend) — troca a aba pro escopo Edit. */
+  onSwitchToEditScope?: () => void;
+}) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const hasDetails = Boolean(
     message.provider || message.toolActivity?.length || message.durationMs,
@@ -54,6 +65,13 @@ export function AssistantMessage({ projectId, message }: { projectId: string; me
           <CitationList projectId={projectId} sources={message.sources} />
         ) : null}
       </div>
+
+      {message.suggestedScope === "edit" && onSwitchToEditScope ? (
+        <Button variant="outline" size="sm" onClick={onSwitchToEditScope}>
+          <Pencil size={12} aria-hidden="true" />
+          Switch to Edit
+        </Button>
+      ) : null}
 
       {message.editProposal ? (
         <EditProposalCard projectId={projectId} proposal={message.editProposal} />

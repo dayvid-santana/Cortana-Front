@@ -806,6 +806,7 @@ export interface components {
             durationMs?: number;
             status: components["schemas"]["MessageStatus"];
             editProposal?: components["schemas"]["EditProposal"];
+            suggestedScope?: components["schemas"]["ChatScope"];
         };
         EditProposalFile: {
             path: string;

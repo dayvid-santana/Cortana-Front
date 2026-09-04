@@ -1082,7 +1082,8 @@
           "questionsDetected": { "type": "array", "items": { "type": "string" } },
           "durationMs": { "type": "integer" },
           "status": { "$ref": "#/components/schemas/MessageStatus" },
-          "editProposal": { "$ref": "#/components/schemas/EditProposal" }
+          "editProposal": { "$ref": "#/components/schemas/EditProposal" },
+          "suggestedScope": { "$ref": "#/components/schemas/ChatScope" }
         }
       },
       "EditProposalFile": {
