@@ -447,6 +447,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/{projectId}/speech/say": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Narrate arbitrary text with the project's configured speech provider/voice */
+        post: operations["speakText"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/projects/{projectId}/settings/speech": {
         parameters: {
             query?: never;
@@ -821,6 +838,9 @@ export interface components {
             language: string;
             recommended: boolean;
             availability: components["schemas"]["ProviderAvailability"];
+        };
+        SpeakRequest: {
+            text: string;
         };
         SpeechSettings: {
             provider: string;
@@ -1554,6 +1574,31 @@ export interface operations {
                 };
             };
             429: components["responses"]["Problem"];
+        };
+    };
+    speakText: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: components["parameters"]["ProjectId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SpeakRequest"];
+            };
+        };
+        responses: {
+            /** @description audio stream, media type depends on the configured provider */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
         };
     };
     updateSpeechSettings: {

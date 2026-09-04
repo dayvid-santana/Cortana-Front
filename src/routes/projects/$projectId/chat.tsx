@@ -18,7 +18,7 @@ import { useChatRun } from "@/features/chat/hooks/use-chat-run";
 import { useThreadMessages, useThreads } from "@/features/chat/hooks/use-thread-messages";
 import { useProject } from "@/features/projects/hooks/use-project";
 import { useProviders } from "@/features/providers/hooks/use-providers";
-import { useSpeechSynthesis } from "@/features/voice/hooks/use-speech-synthesis";
+import { useServerSpeech } from "@/features/speech/hooks/use-server-speech";
 import { toDisplayProblem } from "@/lib/api/errors";
 import { cn } from "@/lib/utils/cn";
 import { useUiPreferencesStore } from "@/stores/ui-preferences-store";
@@ -41,7 +41,7 @@ function ChatPage() {
   const setVoiceModeEnabled = useUiPreferencesStore((state) => state.setVoiceModeEnabled);
   const voiceAutoSend = useUiPreferencesStore((state) => state.voiceAutoSend);
   const voiceLanguage = useUiPreferencesStore((state) => state.voiceLanguage);
-  const speech = useSpeechSynthesis({ lang: voiceLanguage });
+  const speech = useServerSpeech(projectId, { lang: voiceLanguage });
 
   const threadsQuery = useThreads(projectId, commitHash);
   // `useThreads` já filtra por commit; ainda falta checar o scope. Sem isso, trocar
@@ -81,7 +81,7 @@ function ChatPage() {
     const { status, runId, finalMessage } = chatRun.runState;
     if (status !== "completed" || !finalMessage || runId === spokenRunIdRef.current) return;
     spokenRunIdRef.current = runId;
-    speech.speak(finalMessage.content);
+    void speech.speak(finalMessage.content);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voiceModeEnabled, chatRun.runState.status, chatRun.runState.finalMessage]);
 

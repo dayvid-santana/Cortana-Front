@@ -4,7 +4,7 @@ import { ApiError, NetworkError } from "@/lib/api/errors";
 import { requestIdMiddleware } from "@/lib/api/middleware";
 import type { paths } from "@/lib/api/schema";
 
-const apiBaseUrl = import.meta.env.VITE_DEVMATE_API_BASE_URL ?? "/api/v1";
+export const apiBaseUrl = import.meta.env.VITE_DEVMATE_API_BASE_URL ?? "/api/v1";
 
 export const apiClient = createClient<paths>({
   baseUrl: apiBaseUrl,

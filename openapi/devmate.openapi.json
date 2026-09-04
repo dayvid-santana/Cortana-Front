@@ -594,6 +594,23 @@
         }
       }
     },
+    "/projects/{projectId}/speech/say": {
+      "post": {
+        "operationId": "speakText",
+        "summary": "Narrate arbitrary text with the project's configured speech provider/voice",
+        "parameters": [{ "$ref": "#/components/parameters/ProjectId" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/SpeakRequest" } }
+          }
+        },
+        "responses": {
+          "200": { "description": "audio stream, media type depends on the configured provider" },
+          "400": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
     "/projects/{projectId}/settings/speech": {
       "put": {
         "operationId": "updateSpeechSettings",
@@ -1141,6 +1158,11 @@
           "recommended": { "type": "boolean" },
           "availability": { "$ref": "#/components/schemas/ProviderAvailability" }
         }
+      },
+      "SpeakRequest": {
+        "type": "object",
+        "required": ["text"],
+        "properties": { "text": { "type": "string", "minLength": 1, "maxLength": 4000 } }
       },
       "SpeechSettings": {
         "type": "object",
