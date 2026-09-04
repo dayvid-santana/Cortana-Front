@@ -601,6 +601,7 @@ export interface components {
             lastScanAt?: string;
             defaultProvider?: string;
             defaultVoice?: string;
+            defaultRate?: number;
             activeBranch: string;
             activeCommitHash?: string;
         };

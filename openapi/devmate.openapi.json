@@ -794,6 +794,7 @@
           "lastScanAt": { "type": "string", "format": "date-time" },
           "defaultProvider": { "type": "string" },
           "defaultVoice": { "type": "string" },
+          "defaultRate": { "type": "integer" },
           "activeBranch": { "type": "string" },
           "activeCommitHash": { "type": "string" }
         }

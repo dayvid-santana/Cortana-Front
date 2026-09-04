@@ -132,7 +132,9 @@ function SpeechSettingsPage() {
                         provider: voice.provider,
                         voiceId: voice.id,
                         language: voice.language,
-                        rate: 1,
+                        // Preserva o ritmo já configurado; trocar de voz não deveria
+                        // resetá-lo. O backend também mantém o valor atual se omitido.
+                        rate: status.data?.defaultRate ?? 180,
                         capabilities: ["conversation"],
                       })
                     }
