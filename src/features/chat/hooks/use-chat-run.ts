@@ -30,6 +30,18 @@ export function useChatRun(
   const [runState, dispatch] = useReducer(runReducer, initialRunState);
   const [optimisticMessages, setOptimisticMessages] = useState<OptimisticMessage[]>([]);
   const [threadId, setThreadId] = useState<string | undefined>(options.threadId);
+  // `useState(options.threadId)` só lê o valor inicial uma vez; sem isto, trocar de
+  // commit ou scope não reseta `threadId` — `send()` continuaria mandando a thread
+  // antiga, e o backend rejeitaria com "A thread pertence a outro commit ou escopo."
+  // Ajustar o estado durante a renderização (em vez de um efeito) é o padrão do
+  // próprio React para "resetar estado quando uma prop muda": React refaz a
+  // renderização antes de pintar a tela, sem o passo extra de um efeito.
+  const resetKey = `${options.commitHash}:${options.scope}`;
+  const [prevResetKey, setPrevResetKey] = useState(resetKey);
+  if (resetKey !== prevResetKey) {
+    setPrevResetKey(resetKey);
+    setThreadId(options.threadId);
+  }
   const subscriptionRef = useRef<RunEventSubscription | null>(null);
   const runIdRef = useRef<string | null>(null);
 

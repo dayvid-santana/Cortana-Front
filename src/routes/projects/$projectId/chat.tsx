@@ -44,7 +44,13 @@ function ChatPage() {
   const speech = useSpeechSynthesis({ lang: voiceLanguage });
 
   const threadsQuery = useThreads(projectId, commitHash);
-  const resolvedThreadId = search.thread ?? threadsQuery.data?.items[0]?.id;
+  // `useThreads` já filtra por commit; ainda falta checar o scope. Sem isso, trocar
+  // de docs<->code com uma thread na URL reenvia o threadId antigo com o scope novo,
+  // e o backend rejeita ("A thread pertence a outro commit ou escopo.") sem o
+  // usuário entender por quê — a thread simplesmente não existe pra essa combinação.
+  const threadsForScope = threadsQuery.data?.items.filter((thread) => thread.scope === search.scope);
+  const searchThreadMatches = threadsForScope?.some((thread) => thread.id === search.thread);
+  const resolvedThreadId = searchThreadMatches ? search.thread : threadsForScope?.[0]?.id;
   const messagesQuery = useThreadMessages(projectId, resolvedThreadId);
   const providersQuery = useProviders();
   const defaultProvider = providersQuery.data?.items.find((provider) =>
