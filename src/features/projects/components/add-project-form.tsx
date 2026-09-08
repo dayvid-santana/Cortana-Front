@@ -60,7 +60,8 @@ export function AddProjectForm({ onCreated }: AddProjectFormProps) {
           </p>
         ) : (
           <p className="text-muted-foreground text-[12px]">
-            The backend validates this path — DevMate never reads your filesystem from the browser.
+            Use the repository's Git root, not a subfolder. The backend validates the detected root
+            before it reads your filesystem.
           </p>
         )}
       </div>

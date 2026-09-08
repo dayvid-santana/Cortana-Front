@@ -8,6 +8,6 @@ export function ChatEmptyState({ scope }: { scope: "docs" | "code" | "edit" }) {
       ? "Ask about the documentation for this commit — DevMate answers from the docs, with citations you can open."
       : scope === "edit"
         ? "Edit scope is active — ask for a code change and DevMate will propose it (dev-agent when available, otherwise directly). Nothing is written until you confirm."
-        : "Code scope is active — DevMate may include implementation files in the context sent to the provider.";
+        : "Code scope is active — ask about implementation files or request a change. Change requests use dev-agent when available and always require your approval before anything is written.";
   return <EmptyState icon={MessageSquare} title="Start a conversation" description={description} />;
 }

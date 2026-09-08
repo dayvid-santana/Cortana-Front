@@ -1,4 +1,4 @@
-import { ChevronDown, Pencil } from "lucide-react";
+import { ChevronDown, Pencil, Volume2 } from "lucide-react";
 import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -45,12 +45,15 @@ export function AssistantMessage({
   projectId,
   message,
   onSwitchToEditScope,
+  onReadAloud,
 }: {
   projectId: string;
   message: Message;
   /** Presente quando a mensagem foi gerada em Docs/Code mas parecia um pedido de
    * alteração (ver `suggestedScope` no backend) — troca a aba pro escopo Edit. */
   onSwitchToEditScope?: () => void;
+  /** Narra somente o conteúdo da resposta; as referências permanecem apenas visuais. */
+  onReadAloud?: (content: string) => void;
 }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const hasDetails = Boolean(
@@ -73,12 +76,26 @@ export function AssistantMessage({
         </Button>
       ) : null}
 
+      {onReadAloud && message.content.trim() ? (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onReadAloud(message.content)}
+          title="Ler apenas a resposta, sem as referências"
+        >
+          <Volume2 size={12} aria-hidden="true" />
+          Ler resposta
+        </Button>
+      ) : null}
+
       {message.editProposal ? (
         <EditProposalCard projectId={projectId} proposal={message.editProposal} />
       ) : null}
 
       <div className="text-muted-foreground flex items-center gap-2 text-[11px]">
-        <Badge variant={message.scope === "docs" ? "docs" : message.scope === "edit" ? "edit" : "code"}>
+        <Badge
+          variant={message.scope === "docs" ? "docs" : message.scope === "edit" ? "edit" : "code"}
+        >
           {message.scope}
         </Badge>
         <time dateTime={message.createdAt} title={formatAbsoluteTime(message.createdAt)}>

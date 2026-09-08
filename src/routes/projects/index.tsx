@@ -19,6 +19,7 @@ export const Route = createFileRoute("/projects/")({
 
 function ProjectsIndexPage() {
   const projectsQuery = useProjects();
+  const navigate = Route.useNavigate();
   const [addOpen, setAddOpen] = useState(false);
 
   return (
@@ -56,7 +57,12 @@ function ProjectsIndexPage() {
                 title="Add project"
                 description="Register a local repository path with DevMate."
               >
-                <AddProjectForm onCreated={() => setAddOpen(false)} />
+                <AddProjectForm
+                  onCreated={(projectId) => {
+                    setAddOpen(false);
+                    void navigate({ to: "/projects/$projectId", params: { projectId } });
+                  }}
+                />
               </DialogContent>
             </DialogRoot>
           </>

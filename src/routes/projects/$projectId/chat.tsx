@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Mic, MicOff, PanelRightOpen } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from "react-resizable-panels";
 
 import { ErrorState } from "@/components/feedback/error-state";
@@ -17,6 +17,7 @@ import { StreamingMessage } from "@/features/chat/components/streaming-message";
 import { chatSearchSchema } from "@/features/chat/schemas/search";
 import { useChatRun } from "@/features/chat/hooks/use-chat-run";
 import { useThreadMessages, useThreads } from "@/features/chat/hooks/use-thread-messages";
+import { cardNarrationText } from "@/features/chat/lib/narration";
 import { useProject } from "@/features/projects/hooks/use-project";
 import { useProviders } from "@/features/providers/hooks/use-providers";
 import { useServerSpeech } from "@/features/speech/hooks/use-server-speech";
@@ -43,14 +44,28 @@ function ChatPage() {
   const setVoiceModeEnabled = useUiPreferencesStore((state) => state.setVoiceModeEnabled);
   const voiceAutoSend = useUiPreferencesStore((state) => state.voiceAutoSend);
   const voiceLanguage = useUiPreferencesStore((state) => state.voiceLanguage);
-  const speech = useServerSpeech(projectId, { lang: voiceLanguage });
+  const {
+    isSpeaking,
+    speak: speakText,
+    cancel: cancelSpeech,
+  } = useServerSpeech(projectId, { lang: voiceLanguage });
+  // Sources are presented separately in the card. Keep them out of every
+  // narration path so the voice speaks only the assistant's response.
+  const speakCardText = useCallback(
+    (content: string) => {
+      void speakText(cardNarrationText(content));
+    },
+    [speakText],
+  );
 
   const threadsQuery = useThreads(projectId, commitHash);
   // `useThreads` já filtra por commit; ainda falta checar o scope. Sem isso, trocar
   // de docs<->code com uma thread na URL reenvia o threadId antigo com o scope novo,
   // e o backend rejeita ("A thread pertence a outro commit ou escopo.") sem o
   // usuário entender por quê — a thread simplesmente não existe pra essa combinação.
-  const threadsForScope = threadsQuery.data?.items.filter((thread) => thread.scope === search.scope);
+  const threadsForScope = threadsQuery.data?.items.filter(
+    (thread) => thread.scope === search.scope,
+  );
   const searchThreadMatches = threadsForScope?.some((thread) => thread.id === search.thread);
   const resolvedThreadId = searchThreadMatches ? search.thread : threadsForScope?.[0]?.id;
   const messagesQuery = useThreadMessages(projectId, resolvedThreadId);
@@ -83,9 +98,9 @@ function ChatPage() {
     const { status, runId, finalMessage } = chatRun.runState;
     if (status !== "completed" || !finalMessage || runId === spokenRunIdRef.current) return;
     spokenRunIdRef.current = runId;
-    void speech.speak(finalMessage.content);
+    speakCardText(finalMessage.content);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [voiceModeEnabled, chatRun.runState.status, chatRun.runState.finalMessage]);
+  }, [voiceModeEnabled, chatRun.runState.status, chatRun.runState.finalMessage, speakCardText]);
 
   const runIsActive =
     chatRun.runState.status === "connecting" || chatRun.runState.status === "streaming";
@@ -102,13 +117,13 @@ function ChatPage() {
       if (CONFIRM_PATTERN.test(command)) {
         resolvedProposalIdsRef.current.add(proposal.id);
         void applyEditProposal(projectId, proposal.id)
-          .then(() => speech.speak("Aplicado."))
-          .catch(() => speech.speak("Não consegui aplicar a alteração."));
+          .then(() => speakText("Aplicado."))
+          .catch(() => speakText("Não consegui aplicar a alteração."));
         return;
       }
       if (DISCARD_PATTERN.test(command)) {
         resolvedProposalIdsRef.current.add(proposal.id);
-        void speech.speak("Descartado. Nada foi escrito.");
+        void speakText("Descartado. Nada foi escrito.");
         return;
       }
     }
@@ -121,7 +136,7 @@ function ChatPage() {
     // enquanto a assistente está falando ou já processando um pedido, pra não
     // reagir à própria voz dela nem empilhar comandos em cima de uma rodada ativa.
     enabled: voiceModeEnabled,
-    paused: speech.isSpeaking || runIsActive,
+    paused: isSpeaking || runIsActive,
     onCommand: handleVoiceCommand,
   });
 
@@ -176,7 +191,7 @@ function ChatPage() {
             <button
               type="button"
               onClick={() => {
-                if (voiceModeEnabled) speech.cancel();
+                if (voiceModeEnabled) cancelSpeech();
                 setVoiceModeEnabled(!voiceModeEnabled);
               }}
               aria-pressed={voiceModeEnabled}
@@ -195,7 +210,7 @@ function ChatPage() {
                 voiceModeEnabled
                   ? "bg-accent text-accent-foreground"
                   : "text-muted-foreground hover:bg-surface-muted hover:text-foreground",
-                voiceModeEnabled && wakeWord.isListening && !speech.isSpeaking && "animate-pulse",
+                voiceModeEnabled && wakeWord.isListening && !isSpeaking && "animate-pulse",
               )}
             >
               {voiceModeEnabled ? (
@@ -248,6 +263,7 @@ function ChatPage() {
                   onSwitchToEditScope={() =>
                     void navigate({ search: (prev) => ({ ...prev, scope: "edit" }) })
                   }
+                  onReadAloud={speakCardText}
                 />
               ),
             )}
