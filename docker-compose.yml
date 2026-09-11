@@ -13,7 +13,10 @@ services:
       # Only used once a real backend exists — see docs/web-api-gaps.md.
       # Irrelevant while VITE_ENABLE_MOCKS=true, since MSW answers every
       # request before it reaches the network.
-      DEVMATE_API_PROXY_TARGET: http://backend:8000
+      DEVMATE_API_PROXY_TARGET: ${DEVMATE_API_PROXY_TARGET:-http://backend:8000}
+      # Must match the backend's DEVMATE_API_KEY once the backend requires
+      # one (see ../Cortana's compose.yaml). Empty by default (local/mocked).
+      DEVMATE_API_KEY: ${DEVMATE_API_KEY:-}
     networks:
       - devmate-net
     restart: unless-stopped

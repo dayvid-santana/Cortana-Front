@@ -35,6 +35,11 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        # Attached server-side, never shipped to the browser bundle — set
+        # DEVMATE_API_KEY at container start to match the backend's
+        # DEVMATE_API_KEY once it's deployed somewhere reachable off-loopback.
+        # Empty by default, so this is a no-op for the default mocked/local setup.
+        proxy_set_header X-API-Key "${DEVMATE_API_KEY}";
     }
 
     # SPA fallback: unknown paths resolve client-side via TanStack Router.

@@ -106,6 +106,29 @@ the backend's compose — see the `networks:` comment in `docker-compose.yml`),
 so `http://backend:8000` resolves regardless of which project's `up` ran
 first.
 
+### Deploying remotely (personal use)
+
+To reach the app from outside your machine, both `web` and `backend` need to
+run somewhere reachable (e.g. a personal VPS), each behind TLS:
+
+1. Set `DEVMATE_API_KEY` (same value on both `web` and the `../Cortana`
+   `backend` service) — `web`'s nginx layer attaches it as `X-API-Key`
+   server-side, so the key is never shipped to the browser bundle.
+2. On the backend, set `DEVMATE_CORS_ORIGINS` to the exact public origin this
+   frontend is served from.
+3. Build with `VITE_ENABLE_MOCKS=false` and rebuild the image whenever a
+   `VITE_*` var changes (they're inlined at build time).
+4. Put a TLS-terminating reverse proxy in front of both (Caddy/Traefik/nginx+certbot) —
+   neither container speaks HTTPS on its own.
+
+The `/agents` screen (Cortana agent-runner at `127.0.0.1:8765`, sibling repo
+`dev-agent`) is **not** part of this: it's hardcoded to loopback and has
+write access to your local code, so it's intentionally excluded from this
+deploy path. It only works for whoever is running it on their own machine —
+deploying Diana does not make `/agents` work remotely. See
+[`../Cortana/README.md`](../Cortana/README.md#deploy-remoto-fora-de-localhost)
+for the backend-side setup.
+
 ## Scripts
 
 | Script                            | Purpose                                                                  |
